@@ -1,16 +1,27 @@
 // --- PS 175 REMOTE SENSING & 2D MULTI-LAYER ELEVATION CONTROLLER ---
 
-const API_BASE_URL = (
-    (typeof window !== 'undefined' && (window.VITE_API_URL || window.VITE_BACKEND_URL)) ||
-    (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL)) ||
-    ''
-).replace(/\/+$/, '');
+export function getApiBaseUrl() {
+    if (typeof window !== 'undefined') {
+        const savedUrl = localStorage.getItem('DEPTHWIZARD_API_URL');
+        if (savedUrl && savedUrl.trim()) {
+            return savedUrl.trim().replace(/\/+$/, '');
+        }
+        if (window.VITE_API_URL) return window.VITE_API_URL.replace(/\/+$/, '');
+        if (window.VITE_BACKEND_URL) return window.VITE_BACKEND_URL.replace(/\/+$/, '');
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+        if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+    }
+    return '';
+}
 
 export function getApiUrl(path) {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     if (!path.startsWith('/')) path = '/' + path;
-    return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+    const baseUrl = getApiBaseUrl();
+    return baseUrl ? `${baseUrl}${path}` : path;
 }
 
 async function safeFetchJson(url, options = {}) {
@@ -19,7 +30,14 @@ async function safeFetchJson(url, options = {}) {
         res = await fetch(url, options);
     } catch (networkErr) {
         console.error('[API Network Error]', networkErr);
-        throw new Error(`Network connection error: ${networkErr.message || 'Unable to connect to backend server.'}`);
+        const baseUrl = getApiBaseUrl();
+        throw new Error(
+            `Unable to connect to backend server at ${url}. ${
+                !baseUrl 
+                    ? "Vercel static frontend is not connected to a backend. Please set VITE_API_URL in Vercel settings or click ⚙️ API Server in top header."
+                    : `Check if backend server '${baseUrl}' is running.`
+            }`
+        );
     }
 
     const contentType = res.headers.get('content-type') || '';
@@ -44,6 +62,16 @@ async function safeFetchJson(url, options = {}) {
         }
     } else {
         console.error(`[API Error] Received non-JSON content-type (${contentType}, HTTP ${res.status}):`, rawText);
+        if (res.status === 404) {
+            const baseUrl = getApiBaseUrl();
+            throw new Error(
+                `HTTP 404 NOT_FOUND: Route '${url}' was not found. ${
+                    !baseUrl 
+                        ? "Your Vercel deployment is serving static files without a connected Python backend engine. Please configure VITE_API_URL in Vercel Environment Variables or click ⚙️ API Server in the header to enter your backend URL."
+                        : `Please verify that route '${url}' is registered on your backend server (${baseUrl}).`
+                }`
+            );
+        }
         if (rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
             throw new Error(`Server returned HTML instead of JSON (HTTP ${res.status}). Please verify that the backend API URL is reachable and configured properly.`);
         }
@@ -51,6 +79,16 @@ async function safeFetchJson(url, options = {}) {
     }
 
     if (!res.ok) {
+        if (res.status === 404) {
+            const baseUrl = getApiBaseUrl();
+            throw new Error(
+                `HTTP 404 NOT_FOUND: ${
+                    !baseUrl 
+                        ? "API endpoint not found on static server. Set VITE_API_URL in Vercel settings or click ⚙️ API Server to configure your backend URL."
+                        : `API route not found on backend (${baseUrl}).`
+                }`
+            );
+        }
         const errMsg = (parsed && (parsed.error || parsed.message)) ? (parsed.error || parsed.message) : `Request failed with status HTTP ${res.status}`;
         const err = new Error(errMsg);
         err.status = res.status;
@@ -222,7 +260,31 @@ window.addEventListener('DOMContentLoaded', () => {
         .catch(() => {});
 });
 
+function initApiConfigDialog() {
+    const btn = document.getElementById('header-btn-api-config');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        const current = getApiBaseUrl() || "(Relative / Default Vercel Domain)";
+        const newUrl = prompt(
+            `Configure Production Backend API URL:\n\nCurrent active API base: ${current}\n\nEnter your backend URL (e.g. http://localhost:5000 or https://your-backend-domain.com):`,
+            localStorage.getItem('DEPTHWIZARD_API_URL') || ""
+        );
+        if (newUrl !== null) {
+            if (newUrl.trim() === "") {
+                localStorage.removeItem('DEPTHWIZARD_API_URL');
+                alert("Cleared custom API URL override. Now using default environment settings.");
+            } else {
+                localStorage.setItem('DEPTHWIZARD_API_URL', newUrl.trim());
+                alert(`Backend API URL saved: ${newUrl.trim()}\nAll future analysis requests will be routed to this backend engine.`);
+            }
+        }
+    });
+}
+
 function initEvents() {
+    initApiConfigDialog();
+
     if (DOM.headerBtnUpload) {
         DOM.headerBtnUpload.addEventListener('click', () => {
             DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });

@@ -52,6 +52,15 @@ def health_check():
         "output_folder": OUTPUT_FOLDER
     })
 
+@app.route('/api/<path:subpath>', methods=['OPTIONS'])
+@app.route('/api/', methods=['OPTIONS'])
+def handle_options_preflight(subpath=''):
+    response = jsonify({"success": True, "message": "Preflight OK"})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response, 200
+
 @app.route('/api/analyze', methods=['POST'])
 @app.route('/api/infer', methods=['POST'])
 @app.route('/api/3d/generate', methods=['POST'])
