@@ -106,12 +106,22 @@ async function init() {
     });
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
+
+export function getApiUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (!path.startsWith('/')) path = '/' + path;
+    return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+}
+
 async function safeFetchJson(url, options = {}) {
     let response;
+    const finalUrl = getApiUrl(url);
     try {
-        response = await fetch(url, options);
+        response = await fetch(finalUrl, options);
     } catch (networkErr) {
-        throw new Error(`Cannot connect to reconstruction backend (port 5000): ${networkErr.message}. Make sure python app.py is running.`);
+        throw new Error(`Cannot connect to reconstruction backend (${finalUrl}): ${networkErr.message}. Make sure Python backend is running.`);
     }
 
     const rawText = await response.text();
@@ -132,14 +142,14 @@ async function safeFetchJson(url, options = {}) {
     }
 
     if (!rawText.trim()) {
-        throw new Error(`Backend returned an empty response (HTTP ${response.status}) from ${url}.`);
+        throw new Error(`Backend returned an empty response (HTTP ${response.status}) from ${finalUrl}.`);
     }
 
     let data;
     try {
         data = JSON.parse(rawText);
     } catch (parseErr) {
-        throw new Error(`Backend returned invalid JSON from ${url}: ${rawText.slice(0, 300)}`);
+        throw new Error(`Backend returned invalid JSON from ${finalUrl}: ${rawText.slice(0, 300)}`);
     }
 
     return data;
@@ -149,7 +159,7 @@ async function checkBackendHealth() {
     const statusText = document.getElementById('server-status-text');
     const statusDot = document.querySelector('.status-dot');
     try {
-        const res = await fetch('/api/health');
+        const res = await fetch(getApiUrl('/api/health'));
         if (res.ok) {
             const raw = await res.text();
             if (raw.trim()) {
@@ -163,7 +173,7 @@ async function checkBackendHealth() {
             }
         }
     } catch (_) {}
-    if (statusText) statusText.innerText = "Backend Offline (Port 5000)";
+    if (statusText) statusText.innerText = "Backend Offline";
     if (statusDot) {
         statusDot.classList.remove('online');
         statusDot.classList.add('offline');
@@ -176,8 +186,8 @@ async function loadStructuredCityModel(genId) {
     console.log(`[3D_CITY] Loading structured 3D city for genId: ${genId}...`);
     
     const timestamp = new Date().getTime();
-    const glbUrl = `/assets/${genId}/models/model.glb?t=${timestamp}`;
-    const buildingsJsonUrl = `/assets/${genId}/buildings_3d.json?t=${timestamp}`;
+    const glbUrl = getApiUrl(`/assets/${genId}/models/model.glb?t=${timestamp}`);
+    const buildingsJsonUrl = getApiUrl(`/assets/${genId}/buildings_3d.json?t=${timestamp}`);
     
     // Load metadata JSON safely
     try {
@@ -505,7 +515,7 @@ function updateVisualization() {
     };
 
     if (texMap[config.mode] && groundMeshObject) {
-        const texUrl = `/assets/${currentGenId}/${texMap[config.mode]}?t=${timestamp}`;
+        const texUrl = getApiUrl(`/assets/${currentGenId}/${texMap[config.mode]}?t=${timestamp}`);
         const tex = textureLoader.load(texUrl);
         tex.colorSpace = THREE.SRGBColorSpace;
         groundMeshObject.material = new THREE.MeshStandardMaterial({
@@ -664,13 +674,13 @@ async function handleUpload(file) {
         if (document.getElementById('info-src-img')) document.getElementById('info-src-img').innerText = file.name || "image.jpg";
 
         // Update Thumbnails
-        const heatmapUrl = `/assets/${genId}/depth.png`;
-        const rgbUrl = `/assets/${genId}/image.jpg`;
+        const heatmapUrl = getApiUrl(`/assets/${genId}/depth.png`);
+        const rgbUrl = getApiUrl(`/assets/${genId}/image.jpg`);
         const thumbHeatmapImg = document.getElementById('thumb-img-heatmap');
         const thumbDepthImg = document.getElementById('thumb-img-depth');
         const thumbRgbImg = document.getElementById('thumb-img-rgb');
         if (thumbHeatmapImg) thumbHeatmapImg.src = heatmapUrl;
-        if (thumbDepthImg) thumbDepthImg.src = `/assets/${genId}/depth_cleaned.png` || heatmapUrl;
+        if (thumbDepthImg) thumbDepthImg.src = getApiUrl(`/assets/${genId}/depth_cleaned.png`) || heatmapUrl;
         if (thumbRgbImg) thumbRgbImg.src = rgbUrl;
 
         updateProgress(8, "Ready", 100, "Complete");
