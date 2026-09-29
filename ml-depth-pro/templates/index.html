@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PS 175 | 2D Multi-Layer Elevation & Remote Sensing Analysis Platform</title>
+    <title>DepthWizard — AI-Based Elevation & DSM Analysis Platform (SIH PS 175)</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,630 +12,786 @@
     
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="dark-theme">
-    <div class="app-shell">
-        <!-- HEADER TOP NAVBAR -->
-        <header class="top-navbar">
-            <div class="brand-logo">
-                <div class="logo-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+<body>
+    <div class="app-layout">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar" id="app-sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <div class="logo-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="brand-name">DepthWizard</span>
+                        <span class="brand-tag">PS 175 Remote Sensing</span>
+                    </div>
                 </div>
-                <div class="logo-text">
-                    <span class="brand-name">PS 175 REMOTE SENSING</span>
-                    <span class="brand-badge">2D Multi-Layer Elevation Analysis</span>
-                </div>
+                <button class="sidebar-close-btn" id="sidebar-close-btn">✕</button>
             </div>
 
-            <div class="header-nav-center">
-                <span class="platform-tag">12-Layer Elevation, rDSM & Structural Extraction System</span>
+            <nav class="sidebar-nav">
+                <div class="nav-group-title">Workspace</div>
+                <a href="#" class="nav-item active" data-target="view-dashboard" data-title="Dashboard" data-sub="Analyze remote-sensing images and generate elevation insights.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-new-analysis" data-title="New Analysis Workspace" data-sub="Upload aerial imagery and configure 2D multi-layer elevation extraction.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    <span>New Analysis</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-history" data-title="Analysis History" data-sub="Review past remote-sensing sessions and saved outputs.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Analysis History</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-map-layers" data-title="12 Thematic Map Layers" data-sub="Explore AI-generated depth, rDSM, slope, relief, and classification layers.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    <span>Map Layers (12)</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-building-analysis" data-title="Building Analysis" data-sub="Detected structural footprints, relative height extraction, and spatial bounding boxes.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path></svg>
+                    <span>Building Analysis</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-reports" data-title="Reports & Exports" data-sub="Download full analysis ZIPs, GeoJSON, and metadata files.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <span>Reports & Exports</span>
+                </a>
+
+                <div class="nav-group-title">Tools</div>
+                <a href="#" class="nav-item" data-target="view-metadata" data-title="Geospatial Metadata" data-sub="CRS, EPSG, Affine transformation matrix, geographic bounds, and resolution.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <span>Geospatial Metadata</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-dataset" data-title="Dataset & Reference Catalog" data-sub="Sample remote sensing datasets, satellite imagery benchmarks, and DEM sources.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M21 19c0 1.66-4 3-9 3s-9-1.34-9-3"></path></svg>
+                    <span>Dataset / Reference Data</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-model-info" data-title="Model Architecture" data-sub="Apple Depth Pro zero-shot monocular depth engine and PyTorch pipeline specifications.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="9" width="6" height="6"></line><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
+                    <span>Model Information</span>
+                </a>
+
+                <div class="nav-group-title">System</div>
+                <a href="#" class="nav-item" data-target="view-settings" data-title="Settings & System Status" data-sub="Configure production backend API server URL and processing preferences.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="nav-item" data-target="view-help" data-title="Help & Documentation" data-sub="Problem Statement 175 solution overview, 12 map definitions, and usage guide.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Help & Documentation</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status-mini">
+                    <span class="status-dot online" id="status-dot-mini"></span>
+                    <span id="status-text-mini">Depth Engine Connected</span>
+                </div>
             </div>
+        </aside>
 
-            <div class="header-actions">
-                <button class="btn-action-glass" id="header-btn-api-config" title="Configure Backend API Server URL">⚙️ API Server</button>
-                <button class="btn-primary-gradient" id="header-btn-upload"> Upload New Image </button>
-            </div>
-        </header>
-
-        <!-- MAIN LAYOUT CONTENT -->
-        <main class="main-content-container">
-            
-            <!-- SECTION 1: UPLOAD & INPUT AREA -->
-            <section id="section-upload" class="bento-section">
-                <div class="section-title-box">
-                    <h2>Upload Aerial / Remote Sensing Image</h2>
-                    <p>Upload JPG, JPEG, PNG, TIFF, or GeoTIFF imagery to trigger monocular depth estimation, relative DSM surface generation, building extraction, and 12 thematic map layers.</p>
-                </div>
-
-                <div class="upload-split-grid">
-                    <!-- Dropzone -->
-                    <div class="upload-card-dropzone" id="dropzone-area">
-                        <input type="file" id="file-input-hidden" accept=".jpg,.jpeg,.png,.tif,.tiff" style="display:none">
-                        <div class="upload-icon-pulse">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        </div>
-                        <h3>Drop Remote Sensing Image Here</h3>
-                        <p class="dropzone-sub">Supported Formats: JPG, PNG, TIFF, GeoTIFF (Automated CRS & Metadata Detection)</p>
-                        <div class="dropzone-buttons">
-                            <button class="btn-action-glow" id="btn-browse-files">Browse Files</button>
-                            <button class="btn-action-glass" id="btn-sample-satellite">Sample Satellite</button>
-                            <button class="btn-action-glass" id="btn-sample-image2">Sample Aerial</button>
-                        </div>
-                    </div>
-
-                    <!-- Input Image Metadata Card -->
-                    <div class="bento-card input-info-card" id="input-info-card">
-                        <h3>Input Image Specifications</h3>
-                        <div class="preview-wrapper">
-                            <img id="input-preview-img" src="/static/placeholder.png" alt="Input Preview" onerror="this.src='/static/placeholder.png'">
-                        </div>
-                        <ul class="info-list" id="input-info-list">
-                            <li><span class="lbl">Filename:</span> <span class="val" id="info-filename">--</span></li>
-                            <li><span class="lbl">Resolution:</span> <span class="val" id="info-resolution">-- × --</span></li>
-                            <li><span class="lbl">Format:</span> <span class="val" id="info-format">--</span></li>
-                            <li><span class="lbl">Channels:</span> <span class="val" id="info-channels">--</span></li>
-                            <li><span class="lbl">Geospatial:</span> <span class="val" id="info-geospatial">Detection on upload</span></li>
-                            <li><span class="lbl">File Size:</span> <span class="val" id="info-size">-- KB</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION 2: REAL-TIME PROCESSING MONITOR -->
-            <section id="section-processing" class="bento-section hidden">
-                <div class="bento-card progress-card">
-                    <div class="progress-header">
-                        <div>
-                            <h3 id="stage-title">Processing 2D Remote Sensing Analysis...</h3>
-                            <p id="stage-message" class="stage-sub">Executing depth estimation, rDSM generation, and 12-map compilation...</p>
-                        </div>
-                        <div class="progress-pill">
-                            <span id="progress-percent-text">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="progress-bar-track">
-                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
-                    </div>
-
-                    <div class="progress-stages-grid">
-                        <div class="stage-step" data-step="1"><span class="step-num">1</span> Format & CRS Detection</div>
-                        <div class="stage-step" data-step="2"><span class="step-num">2</span> AI Depth Estimation</div>
-                        <div class="stage-step" data-step="3"><span class="step-num">3</span> Outlier Cleaning</div>
-                        <div class="stage-step" data-step="4"><span class="step-num">4</span> Edge & Boundary Analysis</div>
-                        <div class="stage-step" data-step="5"><span class="step-num">5</span> Ground Plane & rDSM</div>
-                        <div class="stage-step" data-step="6"><span class="step-num">6</span> Building Contours & Heights</div>
-                        <div class="stage-step" data-step="7"><span class="step-num">7</span> Slope & Relief Mapping</div>
-                        <div class="stage-step" data-step="8"><span class="step-num">8</span> JSON & 12 Maps Export</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION 3: RESULTS DASHBOARD -->
-            <section id="section-dashboard" class="bento-section hidden">
-                
-                <!-- DASHBOARD HEADER ROW -->
-                <div class="dashboard-banner">
-                    <div>
-                        <div class="session-badge-row">
-                            <span class="status-badge-completed">✓ Analysis Completed</span>
-                            <span class="session-id-pill" id="session-id-display">Session: --</span>
-                            <span class="timestamp-pill" id="session-time-display">--</span>
-                        </div>
-                        <h1 class="dash-title">Multi-Layer Elevation & Remote Sensing Results</h1>
-                    </div>
-                    <div class="banner-actions">
-                        <button class="btn-download-zip" id="btn-download-zip">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            <span>DOWNLOAD ALL RESULTS (ZIP)</span>
-                        </button>
+        <!-- MAIN WRAPPER -->
+        <div class="main-wrapper">
+            <!-- TOP HEADER -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="page-title-box">
+                        <h1 id="header-page-title">Dashboard</h1>
+                        <p id="header-page-sub">Analyze remote-sensing images and generate elevation insights.</p>
                     </div>
                 </div>
 
-                <!-- KEY METRICS CARDS GRID (6 Cards) -->
-                <div class="stats-grid-6">
-                    <div class="stat-card highlight-card">
-                        <div class="stat-icon cyan">🏢</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Detected Buildings</span>
-                            <span class="stat-val" id="stat-building-count">0</span>
-                            <span class="stat-sub">Polygonal Footprints</span>
-                        </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="global-search-input" placeholder="Search analyses...">
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-icon blue">🖼️</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Image Dimensions</span>
-                            <span class="stat-val" id="stat-image-size">-- × --</span>
-                            <span class="stat-sub" id="stat-image-format">RGB</span>
-                        </div>
-                    </div>
+                    <button class="api-status-badge" id="header-btn-api-config">
+                        <span class="status-dot online" id="api-status-dot"></span>
+                        <span id="api-status-text">API Server</span>
+                    </button>
 
-                    <div class="stat-card">
-                        <div class="stat-icon violet">📏</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Depth Range</span>
-                            <span class="stat-val" id="stat-depth-range">0 - 0</span>
-                            <span class="stat-sub">Unit: Relative</span>
-                        </div>
-                    </div>
+                    <button class="btn-primary" id="header-btn-new-analysis">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>+ New Analysis</span>
+                    </button>
 
-                    <div class="stat-card">
-                        <div class="stat-icon orange">📐</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Max Relative rDSM</span>
-                            <span class="stat-val" id="stat-elevation-max">0.00</span>
-                            <span class="stat-sub">Relative Elevation</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon green">🌍</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Geospatial Status</span>
-                            <span class="stat-val" id="stat-geospatial-status">Non-Geo</span>
-                            <span class="stat-sub" id="stat-geospatial-sub">Relative scale only</span>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon emerald">🛡️</div>
-                        <div class="stat-info">
-                            <span class="stat-lbl">Model Confidence</span>
-                            <span class="stat-val" id="stat-confidence">0%</span>
-                            <span class="stat-sub">Certainty Assessment</span>
-                        </div>
-                    </div>
+                    <div class="user-avatar" title="SIH PS 175 Candidate">SIH</div>
                 </div>
+            </header>
 
-                <!-- DASHBOARD TABS -->
-                <div class="dashboard-tabs-bar">
-                    <button class="dash-tab active" data-tab="tab-12-maps">12-Map Analysis Gallery</button>
-                    <button class="dash-tab" data-tab="tab-compare">Side-by-Side Map Compare</button>
-                    <button class="dash-tab" data-tab="tab-analysis-data">Analysis Data & Geospatial</button>
-                    <button class="dash-tab" data-tab="tab-building-info">Building Information Table</button>
-                    <button class="dash-tab" data-tab="tab-json-viewer">JSON Outputs & Reports</button>
-                </div>
+            <!-- CONTENT BODY (11 SECTION VIEWS) -->
+            <main class="content-body">
 
-                <!-- TAB 1: 12-MAP ANALYSIS GALLERY -->
-                <div id="tab-12-maps" class="tab-pane active">
-                    <div class="gallery-toolbar">
-                        <span class="toolbar-hint">Click any card to inspect in high-resolution zoom viewer, compare side-by-side, or download.</span>
-                    </div>
-
-                    <div class="gallery-grid">
-                        <!-- MAP 1: Original RGB -->
-                        <div class="map-card" data-key="rgb" data-title="MAP 1 — Original RGB">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-rgb" src="/static/placeholder.png" alt="Original RGB">
-                                <span class="map-badge rgb">MAP 1</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 1 — Original RGB</h4>
-                                <p>Source uploaded aerial/satellite image for ground reference and optical interpretation.</p>
-                                <div class="map-stats-pill"><span>RGB 3-Channel</span> • <span>Optical</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="rgb">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="rgb">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="rgb">Download</button>
-                                </div>
-                            </div>
+                <!-- 1. DASHBOARD HOME PAGE VIEW -->
+                <section id="view-dashboard" class="view-section active">
+                    <!-- Welcome Banner Card -->
+                    <div class="welcome-banner-card">
+                        <div class="welcome-content">
+                            <h2>Welcome to DepthWizard</h2>
+                            <p>Analyze remote-sensing images and generate elevation insights, relative DSM surfaces, and structural building extractions with zero-shot AI.</p>
                         </div>
-
-                        <!-- MAP 2: Depth Map -->
-                        <div class="map-card" data-key="depth" data-title="MAP 2 — Depth Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-depth" src="/static/placeholder.png" alt="Depth Map">
-                                <span class="map-badge heat">MAP 2</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 2 — Depth Map</h4>
-                                <p>Monocular depth estimation visualization (turbo colormap). Continuous depth gradient.</p>
-                                <div class="map-stats-pill" id="pill-depth"><span>Min: --</span> | <span>Max: --</span> | <span>Relative</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="depth">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="depth">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="depth">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 3: Relative DSM / rDSM -->
-                        <div class="map-card" data-key="rdsm" data-title="MAP 3 — Relative DSM / rDSM">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-rdsm" src="/static/placeholder.png" alt="Relative DSM">
-                                <span class="map-badge viridis">MAP 3</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 3 — Relative DSM / rDSM</h4>
-                                <p>Relative Digital Surface Model representing elevation above estimated ground reference.</p>
-                                <div class="map-stats-pill" id="pill-rdsm"><span>Surface Model</span> | <span>elevation_type: relative</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="rdsm">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="rdsm">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="rdsm">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 4: Elevation Heatmap -->
-                        <div class="map-card" data-key="elevation_heatmap" data-title="MAP 4 — Elevation Heatmap">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-elevation_heatmap" src="/static/placeholder.png" alt="Elevation Heatmap">
-                                <span class="map-badge plasma">MAP 4</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 4 — Elevation Heatmap</h4>
-                                <p>Dedicated elevation heatmap with integrated colorbar legend from low to high relative elevation.</p>
-                                <div class="map-stats-pill" id="pill-elev"><span>Legend Bar</span> | <span>Unit: Relative Elevation</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="elevation_heatmap">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="elevation_heatmap">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="elevation_heatmap">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 5: Building Detection Map -->
-                        <div class="map-card" data-key="building_detection" data-title="MAP 5 — Building Detection Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-building_detection" src="/static/placeholder.png" alt="Building Detection">
-                                <span class="map-badge bldg">MAP 5</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 5 — Building Detection Map</h4>
-                                <p>Highlighted detected building regions with bounding boxes, IDs, and estimated heights.</p>
-                                <div class="map-stats-pill" id="pill-bldg-det"><span>ID Bounding Boxes</span> | <span>Confidence</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="building_detection">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="building_detection">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="building_detection">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 6: Building Height Map -->
-                        <div class="map-card" data-key="building_height" data-title="MAP 6 — Building Height Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-building_height" src="/static/placeholder.png" alt="Building Height Map">
-                                <span class="map-badge height">MAP 6</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 6 — Building Height Map</h4>
-                                <p>Color-coded relative building heights with individual height numerical values annotated.</p>
-                                <div class="map-stats-pill" id="pill-bldg-h"><span>Relative Heights</span> | <span>No metric assumptions</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="building_height">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="building_height">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="building_height">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 7: Edge / Boundary Map -->
-                        <div class="map-card" data-key="edges" data-title="MAP 7 — Edge / Boundary Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-edges" src="/static/placeholder.png" alt="Edge Boundary Map">
-                                <span class="map-badge edge">MAP 7</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 7 — Edge / Boundary Map</h4>
-                                <p>Structural edges from Canny, Sobel depth gradients, and morphological contours.</p>
-                                <div class="map-stats-pill"><span>Cyan: Depth</span> | <span>Yellow: Texture</span> | <span>White: Struct</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="edges">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="edges">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="edges">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 8: Building Boundary / Footprint Map -->
-                        <div class="map-card" data-key="building_boundaries" data-title="MAP 8 — Building Footprint Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-building_boundaries" src="/static/placeholder.png" alt="Building Boundaries">
-                                <span class="map-badge bbox">MAP 8</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 8 — Building Footprint Map</h4>
-                                <p>Clean polygonal building boundaries and footprints extracted from true segmented contours.</p>
-                                <div class="map-stats-pill" id="pill-footprint"><span>True Polygonal Outlines</span> | <span>No fake boxes</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="building_boundaries">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="building_boundaries">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="building_boundaries">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 9: Slope Map -->
-                        <div class="map-card" data-key="slope" data-title="MAP 9 — Slope Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-slope" src="/static/placeholder.png" alt="Slope Map">
-                                <span class="map-badge slope">MAP 9</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 9 — Slope Map</h4>
-                                <p>Approximate slope map calculated from rDSM gradient surface. Labeled relative slope.</p>
-                                <div class="map-stats-pill"><span>Green: Low (&lt;10°)</span> | <span>Yel: Mod</span> | <span>Red: High (&gt;25°)</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="slope">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="slope">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="slope">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 10: Terrain / Relief Map -->
-                        <div class="map-card" data-key="terrain_relief" data-title="MAP 10 — Terrain / Relief Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-terrain_relief" src="/static/placeholder.png" alt="Terrain Relief Map">
-                                <span class="map-badge relief">MAP 10</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 10 — Terrain / Relief Map</h4>
-                                <p>Cartographic shaded relief (hillshade, azimuth 315°, alt 45°) highlighting terrain & rooftop variation.</p>
-                                <div class="map-stats-pill"><span>Cartographic Hillshade</span> • <span>2D Relief Only</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="terrain_relief">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="terrain_relief">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="terrain_relief">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 11: Classification / Semantic Map -->
-                        <div class="map-card" data-key="semantic" data-title="MAP 11 — Semantic Classification Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-semantic" src="/static/placeholder.png" alt="Semantic Map">
-                                <span class="map-badge seg">MAP 11</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 11 — Semantic Classification Map</h4>
-                                <p>Color-coded semantic classification: Buildings, Roads, Vegetation, and Ground terrain.</p>
-                                <div class="map-stats-pill"><span>Blue: Bldg</span> | <span>Orange: Road</span> | <span>Green: Veg</span> | <span>Tan: Ground</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="semantic">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="semantic">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="semantic">Download</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- MAP 12: Model Confidence / Uncertainty Map -->
-                        <div class="map-card" data-key="error" data-title="MAP 12 — Model Confidence Map">
-                            <div class="map-thumb-wrapper">
-                                <img id="map-img-error" src="/static/placeholder.png" alt="Confidence Map">
-                                <span class="map-badge conf">MAP 12</span>
-                            </div>
-                            <div class="map-details">
-                                <h4>MAP 12 — Confidence / Uncertainty Map</h4>
-                                <p>Uncertainty estimation showing high, medium, and low model confidence regions across the scene.</p>
-                                <div class="map-stats-pill"><span>Green: High (&gt;70%)</span> | <span>Amber: Med</span> | <span>Rose: Low (&lt;40%)</span></div>
-                                <div class="map-btn-row">
-                                    <button class="btn-map-action view-btn" data-key="error">Expand</button>
-                                    <button class="btn-map-action compare-btn" data-key="error">Compare</button>
-                                    <button class="btn-map-action dl-btn" data-key="error">Download</button>
-                                </div>
-                            </div>
+                        <div class="welcome-actions">
+                            <button class="btn-primary" id="banner-btn-start">Start New Analysis</button>
+                            <button class="btn-secondary" id="banner-btn-layers" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">Explore 12 Layers</button>
                         </div>
                     </div>
-                </div>
 
-                <!-- TAB 2: SIDE-BY-SIDE MAP COMPARE MODE -->
-                <div id="tab-compare" class="tab-pane hidden">
-                    <div class="bento-card compare-container-card">
-                        <div class="compare-header">
+                    <!-- Summary Metrics Grid -->
+                    <div class="metrics-grid-4">
+                        <div class="metric-card">
+                            <div class="metric-icon-box metric-icon-blue">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                            </div>
                             <div>
-                                <h3>Side-by-Side Dual Layer Comparison</h3>
-                                <p class="card-subtitle">Select any two map outputs to inspect spatial correspondence and structural alignment.</p>
-                            </div>
-                            <div class="compare-selectors">
-                                <div class="sel-group">
-                                    <label for="compare-select-left">Layer A (Left):</label>
-                                    <select id="compare-select-left" class="custom-select">
-                                        <option value="rgb" selected>MAP 1 — Original RGB</option>
-                                        <option value="depth">MAP 2 — Depth Map</option>
-                                        <option value="rdsm">MAP 3 — Relative DSM / rDSM</option>
-                                        <option value="elevation_heatmap">MAP 4 — Elevation Heatmap</option>
-                                        <option value="building_detection">MAP 5 — Building Detection Map</option>
-                                        <option value="building_height">MAP 6 — Building Height Map</option>
-                                        <option value="edges">MAP 7 — Edge / Boundary Map</option>
-                                        <option value="building_boundaries">MAP 8 — Building Footprints</option>
-                                        <option value="slope">MAP 9 — Slope Map</option>
-                                        <option value="terrain_relief">MAP 10 — Terrain Relief Map</option>
-                                        <option value="semantic">MAP 11 — Semantic Map</option>
-                                        <option value="error">MAP 12 — Confidence Map</option>
-                                    </select>
-                                </div>
-                                <div class="sel-group">
-                                    <label for="compare-select-right">Layer B (Right):</label>
-                                    <select id="compare-select-right" class="custom-select">
-                                        <option value="elevation_heatmap" selected>MAP 4 — Elevation Heatmap</option>
-                                        <option value="rgb">MAP 1 — Original RGB</option>
-                                        <option value="depth">MAP 2 — Depth Map</option>
-                                        <option value="rdsm">MAP 3 — Relative DSM / rDSM</option>
-                                        <option value="building_detection">MAP 5 — Building Detection Map</option>
-                                        <option value="building_height">MAP 6 — Building Height Map</option>
-                                        <option value="edges">MAP 7 — Edge / Boundary Map</option>
-                                        <option value="building_boundaries">MAP 8 — Building Footprints</option>
-                                        <option value="slope">MAP 9 — Slope Map</option>
-                                        <option value="terrain_relief">MAP 10 — Terrain Relief Map</option>
-                                        <option value="semantic">MAP 11 — Semantic Map</option>
-                                        <option value="error">MAP 12 — Confidence Map</option>
-                                    </select>
-                                </div>
-                                <button class="btn-action-glass" id="btn-swap-compare">Swap</button>
+                                <div class="metric-val" id="dash-stat-total">12</div>
+                                <div class="metric-lbl">Total Analyses</div>
                             </div>
                         </div>
 
-                        <div class="compare-view-grid">
-                            <div class="compare-half">
-                                <div class="compare-tag-bar">
-                                    <span id="compare-title-left">MAP 1 — Original RGB</span>
-                                </div>
-                                <div class="compare-img-wrap">
-                                    <img id="compare-img-left" src="/static/placeholder.png" alt="Left Compare">
+                        <div class="metric-card">
+                            <div class="metric-icon-box metric-icon-cyan">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <div>
+                                <div class="metric-val" id="dash-stat-images">12</div>
+                                <div class="metric-lbl">Images Processed</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon-box metric-icon-purple">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path></svg>
+                            </div>
+                            <div>
+                                <div class="metric-val" id="dash-stat-buildings">48</div>
+                                <div class="metric-lbl">Buildings Detected</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon-box metric-icon-emerald">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </div>
+                            <div>
+                                <div class="metric-val" id="dash-stat-exports">12</div>
+                                <div class="metric-lbl">Successful Exports</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dual Panel Chart & Layer Distribution -->
+                    <div class="dashboard-grid-main">
+                        <!-- Activity Chart -->
+                        <div class="card">
+                            <div class="card-header-clean">
+                                <div>
+                                    <h3>Recent Analysis Activity</h3>
+                                    <p>Remote sensing image processing volume over recent sessions</p>
                                 </div>
                             </div>
-                            <div class="compare-half">
-                                <div class="compare-tag-bar">
-                                    <span id="compare-title-right">MAP 4 — Elevation Heatmap</span>
+                            <div class="chart-container">
+                                <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/>
+                                            <stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <path d="M 0,160 Q 100,60 200,120 T 400,40 T 600,80 L 600,200 L 0,200 Z" fill="url(#chartGrad)" />
+                                    <path d="M 0,160 Q 100,60 200,120 T 400,40 T 600,80" fill="none" stroke="#2563eb" stroke-width="3" />
+                                    <circle cx="200" cy="120" r="5" fill="#2563eb"/>
+                                    <circle cx="400" cy="40" r="5" fill="#2563eb"/>
+                                    <circle cx="600" cy="80" r="5" fill="#2563eb"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Map Layer Types Summary -->
+                        <div class="card">
+                            <div class="card-header-clean">
+                                <div>
+                                    <h3>Map Layers Generated</h3>
+                                    <p>12-Layer extraction distribution</p>
                                 </div>
-                                <div class="compare-img-wrap">
-                                    <img id="compare-img-right" src="/static/placeholder.png" alt="Right Compare">
+                            </div>
+                            <div class="layer-dist-list">
+                                <div class="layer-dist-item">
+                                    <span>Relative DSM & Depth</span>
+                                    <div class="layer-dist-bar-track"><div class="layer-dist-bar-fill" style="width: 100%"></div></div>
+                                    <strong>100%</strong>
+                                </div>
+                                <div class="layer-dist-item">
+                                    <span>Building Detection & Height</span>
+                                    <div class="layer-dist-bar-track"><div class="layer-dist-bar-fill" style="width: 90%; background-color: var(--accent-purple);"></div></div>
+                                    <strong>90%</strong>
+                                </div>
+                                <div class="layer-dist-item">
+                                    <span>Slope & Terrain Relief</span>
+                                    <div class="layer-dist-bar-track"><div class="layer-dist-bar-fill" style="width: 100%; background-color: var(--accent-cyan);"></div></div>
+                                    <strong>100%</strong>
+                                </div>
+                                <div class="layer-dist-item">
+                                    <span>Semantic Classification</span>
+                                    <div class="layer-dist-bar-track"><div class="layer-dist-bar-fill" style="width: 85%; background-color: var(--accent-emerald);"></div></div>
+                                    <strong>85%</strong>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- TAB 3: ANALYSIS DATA & GEOSPATIAL SECTION -->
-                <div id="tab-analysis-data" class="tab-pane hidden">
-                    <div class="analysis-data-grid">
-                        
-                        <!-- Image Information Card -->
-                        <div class="bento-card">
-                            <div class="section-badge-pill">Image Specs</div>
-                            <h3>Image Information</h3>
-                            <ul class="data-spec-list">
-                                <li><span class="k">Filename:</span> <span class="v" id="ad-filename">--</span></li>
-                                <li><span class="k">Format:</span> <span class="v" id="ad-format">--</span></li>
-                                <li><span class="k">Dimensions:</span> <span class="v" id="ad-dims">-- × --</span></li>
-                                <li><span class="k">Channels:</span> <span class="v" id="ad-channels">3 (RGB)</span></li>
-                                <li><span class="k">File Size:</span> <span class="v" id="ad-size">-- KB</span></li>
-                                <li><span class="k">Processing Time:</span> <span class="v" id="ad-time">-- s</span></li>
-                            </ul>
+                    <!-- Recent Analyses Table -->
+                    <div class="table-card">
+                        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h3 style="font-family: var(--font-heading); font-size: 16px; font-weight: 700;">Recent Analyses</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted);">Latest remote sensing processing runs</p>
+                            </div>
+                            <button class="btn-secondary" id="dash-btn-view-all">View All History</button>
                         </div>
-
-                        <!-- Geospatial Information Card -->
-                        <div class="bento-card">
-                            <div class="section-badge-pill">Geospatial Specs</div>
-                            <h3>Geospatial Information</h3>
-                            <ul class="data-spec-list">
-                                <li><span class="k">Georeferenced:</span> <span class="v" id="geo-status">--</span></li>
-                                <li><span class="k">CRS:</span> <span class="v" id="geo-crs">--</span></li>
-                                <li><span class="k">EPSG Code:</span> <span class="v" id="geo-epsg">--</span></li>
-                                <li><span class="k">Pixel Resolution:</span> <span class="v" id="geo-pixel-size">--</span></li>
-                                <li><span class="k">Bounding Coordinates:</span> <span class="v" id="geo-bounds">--</span></li>
-                                <li><span class="k">Geographic Coverage:</span> <span class="v" id="geo-coverage">--</span></li>
-                            </ul>
-                        </div>
-
-                        <!-- Elevation Surface Card -->
-                        <div class="bento-card">
-                            <div class="section-badge-pill">Elevation Surface</div>
-                            <h3>Elevation & rDSM Statistics</h3>
-                            <ul class="data-spec-list">
-                                <li><span class="k">Elevation Type:</span> <span class="v" id="ad-elev-type">Relative</span></li>
-                                <li><span class="k">Min Relative Elevation:</span> <span class="v" id="ad-elev-min">0.00</span></li>
-                                <li><span class="k">Max Relative Elevation:</span> <span class="v" id="ad-elev-max">0.00</span></li>
-                                <li><span class="k">Mean Relative Elevation:</span> <span class="v" id="ad-elev-mean">0.00</span></li>
-                                <li><span class="k">Median Relative Elevation:</span> <span class="v" id="ad-elev-median">0.00</span></li>
-                                <li><span class="k">Elevation Unit:</span> <span class="v highlight">relative (uncalibrated)</span></li>
-                            </ul>
-                        </div>
-
-                        <!-- Quality & Confidence Card -->
-                        <div class="bento-card">
-                            <div class="section-badge-pill">Model Quality</div>
-                            <h3>Quality & Confidence Metrics</h3>
-                            <ul class="data-spec-list">
-                                <li><span class="k">Average Model Confidence:</span> <span class="v" id="ad-q-conf">--</span></li>
-                                <li><span class="k">MAE (vs Reference):</span> <span class="v" id="ad-q-mae">null (No Ground Truth DEM)</span></li>
-                                <li><span class="k">RMSE (vs Reference):</span> <span class="v" id="ad-q-rmse">null (No Ground Truth DEM)</span></li>
-                                <li><span class="k">Correlation:</span> <span class="v" id="ad-q-corr">null</span></li>
-                                <li><span class="k">Valid Pixels Ratio:</span> <span class="v" id="ad-q-valid">100%</span></li>
-                                <li><span class="k">Quality Status:</span> <span class="v" id="ad-q-status">PASS</span></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 4: BUILDING INFORMATION SECTION -->
-                <div id="tab-building-info" class="tab-pane hidden">
-                    <!-- Summary Statistics Cards -->
-                    <div class="bento-card summary-card">
-                        <h3>Building Extraction Summary</h3>
-                        <div class="stats-summary-grid">
-                            <div class="sum-item"><span class="lbl">Total Detected Buildings:</span> <span class="val" id="bsum-count">0</span></div>
-                            <div class="sum-item"><span class="lbl">Average Relative Height:</span> <span class="val" id="bsum-avg-h">0.00</span></div>
-                            <div class="sum-item"><span class="lbl">Maximum Relative Height:</span> <span class="val" id="bsum-max-h">0.00</span></div>
-                            <div class="sum-item"><span class="lbl">Minimum Relative Height:</span> <span class="val" id="bsum-min-h">0.00</span></div>
-                            <div class="sum-item"><span class="lbl">Total Building Footprint Area:</span> <span class="val" id="bsum-area">0 px²</span></div>
-                            <div class="sum-item"><span class="lbl">Average Confidence:</span> <span class="val" id="bsum-conf">0%</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Interactive Building Details Table -->
-                    <div class="bento-card table-card">
-                        <div class="table-header-row">
-                            <h3>Building Information Table</h3>
-                            <span class="table-tip">💡 Click any row to preview and locate the building on the footprint map.</span>
-                        </div>
-                        <div class="table-scroll-wrapper">
-                            <table class="data-table" id="buildings-table">
+                        <div class="table-responsive">
+                            <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Bounding Box (x1, y1, x2, y2)</th>
-                                        <th>Area (px²)</th>
-                                        <th>Estimated Relative Height</th>
-                                        <th>Height Unit</th>
-                                        <th>Confidence</th>
-                                        <th>Center (x, y)</th>
+                                        <th>Analysis Name</th>
+                                        <th>Uploaded Filename</th>
+                                        <th>Date & Time</th>
+                                        <th>Dimensions</th>
+                                        <th>Georeferencing</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="buildings-table-body">
-                                    <!-- Populated dynamically -->
+                                <tbody id="dash-recent-table-body">
+                                    <tr>
+                                        <td><strong>Satellite Surface Analysis #12</strong></td>
+                                        <td><code>satellite.jpg</code></td>
+                                        <td>Just now</td>
+                                        <td>1024 × 768 px</td>
+                                        <td><span class="badge-tag badge-info">Relative Grid</span></td>
+                                        <td><span class="badge-tag badge-success">Completed</span></td>
+                                        <td><button class="btn-icon-action btn-view-analysis-row" data-session="image3_output">View Results</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Aerial Building Extraction #11</strong></td>
+                                        <td><code>image2.jpg</code></td>
+                                        <td>10 mins ago</td>
+                                        <td>1280 × 960 px</td>
+                                        <td><span class="badge-tag badge-info">Relative Grid</span></td>
+                                        <td><span class="badge-tag badge-success">Completed</span></td>
+                                        <td><button class="btn-icon-action btn-view-analysis-row" data-session="image3_output">View Results</button></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
 
-                <!-- TAB 5: JSON DATA & REPORTS SECTION -->
-                <div id="tab-json-viewer" class="tab-pane hidden">
-                    <div class="bento-card json-card">
-                        <div class="json-tabs-bar">
-                            <div class="json-subtabs">
-                                <button class="btn-subtab active" data-json="metadata">metadata.json</button>
-                                <button class="btn-subtab" data-json="buildings">buildings.json</button>
-                                <button class="btn-subtab" data-json="statistics">statistics.json</button>
+                    <!-- Quick Actions Grid -->
+                    <div class="quick-actions-grid">
+                        <div class="quick-action-card" id="qa-upload">
+                            <div class="quick-action-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             </div>
-                            <div class="json-actions">
-                                <button class="btn-action-glass" id="btn-copy-json">Copy JSON</button>
-                                <button class="btn-action-glass" id="btn-download-json">Download JSON</button>
-                            </div>
+                            <h4>Upload New Image</h4>
+                            <p>Upload JPG, PNG, TIFF, or GeoTIFF imagery to start depth estimation.</p>
                         </div>
-                        <div class="json-code-wrapper">
-                            <pre><code id="json-code-display">Loading report data...</code></pre>
+
+                        <div class="quick-action-card" id="qa-layers">
+                            <div class="quick-action-icon" style="color: var(--accent-cyan); background-color: #ecfeff;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                            </div>
+                            <h4>Explore Map Layers</h4>
+                            <p>Inspect all 12 thematic outputs including rDSM, slope, and elevation heatmaps.</p>
+                        </div>
+
+                        <div class="quick-action-card" id="qa-buildings">
+                            <div class="quick-action-icon" style="color: var(--accent-purple); background-color: #f5f3ff;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"></path></svg>
+                            </div>
+                            <h4>Building Analysis</h4>
+                            <p>View detected building structures, footprint areas, and estimated heights.</p>
+                        </div>
+
+                        <div class="quick-action-card" id="qa-reports">
+                            <div class="quick-action-icon" style="color: var(--accent-emerald); background-color: #ecfdf5;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
+                            <h4>Generate Reports</h4>
+                            <p>Download structured JSON metadata, building data, or full ZIP packages.</p>
                         </div>
                     </div>
-                </div>
+                </section>
 
-            </section>
-        </main>
+                <!-- 2. NEW ANALYSIS VIEW -->
+                <section id="view-new-analysis" class="view-section">
+                    <div class="upload-grid-split">
+                        <!-- Dropzone Card -->
+                        <div class="dropzone-box" id="dropzone-area">
+                            <input type="file" id="file-input-hidden" accept=".jpg,.jpeg,.png,.tif,.tiff" style="display:none">
+                            <div class="dropzone-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            </div>
+                            <h3>Drag & Drop Remote Sensing Image Here</h3>
+                            <p class="dropzone-sub">Supported Formats: JPG, PNG, TIFF, GeoTIFF (Automated metadata & CRS detection)</p>
+                            <div class="preset-buttons">
+                                <button class="btn-primary" id="btn-browse-files">Browse Files</button>
+                                <button class="btn-secondary" id="btn-sample-satellite">Sample Satellite</button>
+                                <button class="btn-secondary" id="btn-sample-image2">Sample Aerial</button>
+                            </div>
+                        </div>
+
+                        <!-- Image Specs Preview Card -->
+                        <div class="card">
+                            <div class="card-header-clean">
+                                <div>
+                                    <h3>Image Specifications</h3>
+                                    <p>Input metadata preview</p>
+                                </div>
+                            </div>
+                            <div class="input-preview-box">
+                                <img id="input-preview-img" src="/static/placeholder.png" alt="Input Preview" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Remote+Sensing+Image'">
+                            </div>
+                            <ul class="specs-list">
+                                <li><span class="lbl">Filename:</span> <span class="val" id="info-filename">--</span></li>
+                                <li><span class="lbl">Resolution:</span> <span class="val" id="info-resolution">-- × --</span></li>
+                                <li><span class="lbl">Format:</span> <span class="val" id="info-format">--</span></li>
+                                <li><span class="lbl">Geospatial:</span> <span class="val" id="info-geospatial">Detection on upload</span></li>
+                                <li><span class="lbl">File Size:</span> <span class="val" id="info-size">-- KB</span></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Configuration Panel -->
+                    <div class="config-options-panel">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Analysis Configuration</h3>
+                                <p>Select elevation estimation mode and backend calibration</p>
+                            </div>
+                        </div>
+
+                        <div class="radio-cards-grid">
+                            <div class="radio-card selected" id="opt-relative-card">
+                                <div>
+                                    <h4>Relative Analysis (Monocular Depth & rDSM)</h4>
+                                    <p>Estimates relative surface heights, depth maps, slope, relief, and building footprints from any RGB image without requiring reference DEM calibration.</p>
+                                </div>
+                            </div>
+                            <div class="radio-card" id="opt-calibrated-card">
+                                <div>
+                                    <h4>Calibrated Analysis (Georeferenced GeoTIFF)</h4>
+                                    <p>Requires georeferenced GeoTIFF input with CRS metadata and ground reference DEM data for absolute metric elevation calibration.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                            <button class="btn-primary" id="btn-start-analysis" style="padding: 12px 28px; font-size: 14px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <span>Start Analysis</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Monitor (Hidden by default) -->
+                    <div id="section-processing" class="progress-card hidden">
+                        <div class="progress-header-flex">
+                            <div>
+                                <h3 id="stage-title" style="font-family: var(--font-heading); font-size: 18px; font-weight: 700;">Processing 2D Remote Sensing Analysis...</h3>
+                                <p id="stage-message" style="font-size: 13px; color: #94a3b8;">Executing monocular depth estimation, rDSM generation, and 12-map compilation...</p>
+                            </div>
+                            <div style="font-size: 20px; font-weight: 800; color: var(--accent-cyan);" id="progress-percent-text">0%</div>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progress-bar-fill"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. MAP LAYERS VIEW (12 MAPS) -->
+                <section id="view-map-layers" class="view-section">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                        <div>
+                            <span class="badge-tag badge-info" id="session-id-display">Session: image3_output</span>
+                            <span style="font-size: 12.5px; color: var(--text-muted); margin-left: 12px;" id="session-time-display">--</span>
+                        </div>
+                        <button class="btn-primary" id="btn-download-zip">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Download 12 Maps (ZIP)</span>
+                        </button>
+                    </div>
+
+                    <!-- 12 Map Cards Grid -->
+                    <div class="map-gallery-grid">
+                        <!-- MAP 1 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 1 — Original RGB Image</div>
+                            <div class="map-card-img-wrap"><img id="map-img-rgb" src="/static/placeholder.png" alt="RGB Image"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="rgb">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="rgb">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 2 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 2 — Depth Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-depth" src="/static/placeholder.png" alt="Depth Map"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="depth">🔍 Zoom</button>
+                                <button class="btn-icon-action compare-btn" data-key="depth">⚖ Compare</button>
+                                <button class="btn-icon-action dl-btn" data-key="depth">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 3 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 3 — Relative DSM (rDSM)</div>
+                            <div class="map-card-img-wrap"><img id="map-img-rdsm" src="/static/placeholder.png" alt="rDSM"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="rdsm">🔍 Zoom</button>
+                                <button class="btn-icon-action compare-btn" data-key="rdsm">⚖ Compare</button>
+                                <button class="btn-icon-action dl-btn" data-key="rdsm">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 4 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 4 — Elevation Heatmap</div>
+                            <div class="map-card-img-wrap"><img id="map-img-elevation_heatmap" src="/static/placeholder.png" alt="Elevation Heatmap"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="elevation_heatmap">🔍 Zoom</button>
+                                <button class="btn-icon-action compare-btn" data-key="elevation_heatmap">⚖ Compare</button>
+                                <button class="btn-icon-action dl-btn" data-key="elevation_heatmap">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 5 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 5 — Building Detection Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-building_detection" src="/static/placeholder.png" alt="Building Detection"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="building_detection">🔍 Zoom</button>
+                                <button class="btn-icon-action compare-btn" data-key="building_detection">⚖ Compare</button>
+                                <button class="btn-icon-action dl-btn" data-key="building_detection">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 6 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 6 — Building Height Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-building_height" src="/static/placeholder.png" alt="Building Height"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="building_height">🔍 Zoom</button>
+                                <button class="btn-icon-action compare-btn" data-key="building_height">⚖ Compare</button>
+                                <button class="btn-icon-action dl-btn" data-key="building_height">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 7 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 7 — Edge & Boundary Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-edges" src="/static/placeholder.png" alt="Edge Map"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="edges">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="edges">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 8 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 8 — Building Footprint Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-building_boundaries" src="/static/placeholder.png" alt="Building Footprints"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="building_boundaries">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="building_boundaries">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 9 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 9 — Slope Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-slope" src="/static/placeholder.png" alt="Slope Map"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="slope">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="slope">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 10 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 10 — Terrain Relief / Hillshade</div>
+                            <div class="map-card-img-wrap"><img id="map-img-terrain_relief" src="/static/placeholder.png" alt="Hillshade"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="terrain_relief">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="terrain_relief">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 11 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 11 — Semantic Classification Map</div>
+                            <div class="map-card-img-wrap"><img id="map-img-semantic" src="/static/placeholder.png" alt="Semantic Segmentation"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="semantic">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="semantic">⬇ Download</button>
+                            </div>
+                        </div>
+                        <!-- MAP 12 -->
+                        <div class="map-card">
+                            <div class="map-card-header">MAP 12 — Model Uncertainty / Confidence</div>
+                            <div class="map-card-img-wrap"><img id="map-img-error" src="/static/placeholder.png" alt="Uncertainty Map"></div>
+                            <div class="map-card-actions">
+                                <button class="btn-icon-action view-btn" data-key="error">🔍 Zoom</button>
+                                <button class="btn-icon-action dl-btn" data-key="error">⬇ Download</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Side-by-Side Comparison Panel -->
+                    <div class="compare-panel">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h3 style="font-family: var(--font-heading); font-size: 16px; font-weight: 700;">Side-by-Side Layer Comparison</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted);">Compare original RGB image against AI analytical outputs</p>
+                            </div>
+                            <button class="btn-secondary" id="btn-swap-compare">⇄ Swap Side Views</button>
+                        </div>
+
+                        <div class="compare-grid">
+                            <div>
+                                <div style="margin-bottom: 8px;">
+                                    <select id="compare-select-left" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); font-weight: 600;">
+                                        <option value="rgb">MAP 1 — Original RGB</option>
+                                        <option value="depth">MAP 2 — Depth Map</option>
+                                        <option value="rdsm">MAP 3 — Relative DSM (rDSM)</option>
+                                    </select>
+                                </div>
+                                <div class="compare-img-box"><img id="compare-img-left" src="/static/placeholder.png" alt="Left View"></div>
+                            </div>
+
+                            <div>
+                                <div style="margin-bottom: 8px;">
+                                    <select id="compare-select-right" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-light); font-weight: 600;">
+                                        <option value="rdsm">MAP 3 — Relative DSM (rDSM)</option>
+                                        <option value="elevation_heatmap">MAP 4 — Elevation Heatmap</option>
+                                        <option value="building_detection">MAP 5 — Building Detection</option>
+                                    </select>
+                                </div>
+                                <div class="compare-img-box"><img id="compare-img-right" src="/static/placeholder.png" alt="Right View"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. BUILDING ANALYSIS VIEW -->
+                <section id="view-building-analysis" class="view-section">
+                    <div class="metrics-grid-4">
+                        <div class="metric-card">
+                            <div><div class="metric-val" id="bsum-count">48</div><div class="metric-lbl">Building Count</div></div>
+                        </div>
+                        <div class="metric-card">
+                            <div><div class="metric-val" id="bsum-avg-h">14.2</div><div class="metric-lbl">Avg Relative Height</div></div>
+                        </div>
+                        <div class="metric-card">
+                            <div><div class="metric-val" id="bsum-max-h">32.8</div><div class="metric-lbl">Max Height</div></div>
+                        </div>
+                        <div class="metric-card">
+                            <div><div class="metric-val" id="bsum-area">145,200</div><div class="metric-lbl">Total Area (px²)</div></div>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h3 style="font-family: var(--font-heading); font-size: 16px; font-weight: 700;">Detected Building Footprints</h3>
+                                <p style="font-size: 12.5px; color: var(--text-muted);">Extracted structural footprints & height profiles</p>
+                            </div>
+                            <input type="text" id="bldg-search-input" placeholder="Search building ID..." style="padding: 6px 12px; border: 1px solid var(--border-light); border-radius: 6px;">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Building ID</th>
+                                        <th>Bounding Box [ymin, xmin, ymax, xmax]</th>
+                                        <th>Area (px²)</th>
+                                        <th>Relative Height</th>
+                                        <th>Unit</th>
+                                        <th>Confidence</th>
+                                        <th>Center Coords</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="buildings-table-body">
+                                    <tr><td colspan="7" style="text-align:center; padding: 24px;">No building data loaded yet. Run analysis to populate structures.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. REPORTS & EXPORTS VIEW -->
+                <section id="view-reports" class="view-section">
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Download Analysis Exports</h3>
+                                <p>Retrieve generated datasets, map layers, and JSON metadata reports</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button class="btn-primary" id="btn-export-zip-main">⬇ Download Complete ZIP Package</button>
+                            <button class="btn-secondary" id="btn-export-meta-json">📄 Download metadata.json</button>
+                            <button class="btn-secondary" id="btn-export-bldg-json">🏢 Download buildings.json</button>
+                            <button class="btn-secondary" id="btn-export-stats-json">📊 Download statistics.json</button>
+                        </div>
+                    </div>
+
+                    <!-- JSON Viewer -->
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Structured JSON Inspector</h3>
+                                <p>Live output inspection for GIS integration</p>
+                            </div>
+                            <div>
+                                <button class="btn-secondary" id="btn-copy-json">Copy JSON</button>
+                                <button class="btn-secondary" id="btn-download-json">Download File</button>
+                            </div>
+                        </div>
+                        <pre style="background: #0f172a; color: #38bdf8; padding: 20px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; max-height: 400px; overflow-y: auto;" id="json-code-display">{ "status": "No analysis data loaded yet." }</pre>
+                    </div>
+                </section>
+
+                <!-- 6. ANALYSIS HISTORY VIEW -->
+                <section id="view-history" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Saved Analysis History</h3>
+                                <p>Previous remote sensing sessions stored in output directory</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session ID</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>image3_output</code></td>
+                                        <td>2026-09-30</td>
+                                        <td><span class="badge-tag badge-success">Completed</span></td>
+                                        <td><button class="btn-icon-action btn-reload-session" data-session="image3_output">Load Analysis</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. GEOSPATIAL METADATA VIEW -->
+                <section id="view-metadata" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Geospatial Metadata Breakdown</h3>
+                                <p>CRS, affine transform, pixel grid, and coordinate specs</p>
+                            </div>
+                        </div>
+                        <ul class="specs-list" style="font-size: 14px;">
+                            <li><span class="lbl">Georeferenced Status:</span> <span class="val" id="geo-status">Relative local grid (Non-GeoTIFF)</span></li>
+                            <li><span class="lbl">CRS / Spatial Reference:</span> <span class="val" id="geo-crs">None</span></li>
+                            <li><span class="lbl">EPSG Code:</span> <span class="val" id="geo-epsg">None</span></li>
+                            <li><span class="lbl">Pixel Size:</span> <span class="val" id="geo-pixel-size">1.0 × 1.0 px grid</span></li>
+                            <li><span class="lbl">Geographic Bounds:</span> <span class="val" id="geo-bounds">N/A</span></li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 8. DATASET / REFERENCE DATA VIEW -->
+                <section id="view-dataset" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>Sample Datasets & Benchmark Reference Data</h3>
+                                <p>Included sample aerial imagery for remote-sensing verification</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 16px;">
+                            <button class="btn-secondary" id="ds-sample-satellite">Satellite Dataset (satellite.jpg)</button>
+                            <button class="btn-secondary" id="ds-sample-image2">Aerial Dataset (image2.jpg)</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 9. MODEL INFORMATION VIEW -->
+                <section id="view-model-info" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>AI Model Architecture Specifications</h3>
+                                <p>SIH PS 175 Monocular Depth & Surface Extraction Engine</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+                            DepthWizard uses state-of-the-art zero-shot monocular depth estimation powered by PyTorch and Apple Depth Pro.
+                            It generates high-resolution canonical depth predictions and extracts relative Digital Surface Models (rDSM), building height profiles, terrain relief, and edge contours from single RGB remote-sensing imagery.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 10. SETTINGS VIEW -->
+                <section id="view-settings" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>API Server & System Configuration</h3>
+                                <p>Configure production backend URL for Vercel static deployment</p>
+                            </div>
+                        </div>
+                        <div style="max-width: 500px;">
+                            <label style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px;">Backend API Base URL</label>
+                            <input type="text" id="settings-api-url" placeholder="e.g. http://localhost:5000 or https://your-backend-domain.com" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: 6px; margin-bottom: 16px;">
+                            <button class="btn-primary" id="settings-btn-save">Save Backend URL</button>
+                            <button class="btn-secondary" id="settings-btn-test">Test Connection</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 11. HELP & DOCUMENTATION VIEW -->
+                <section id="view-help" class="view-section">
+                    <div class="card">
+                        <div class="card-header-clean">
+                            <div>
+                                <h3>SIH PS 175 Documentation & Help Guide</h3>
+                                <p>Overview of the 12 thematic elevation and surface outputs</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+                            DepthWizard transforms single-view aerial RGB images into 12 multi-layer GIS outputs without requiring stereo pairs or expensive LiDAR hardware.
+                            For support or inquiries regarding SIH PS 175 presentation guidelines, consult the embedded metadata and export packages.
+                        </p>
+                    </div>
+                </section>
+
+            </main>
+        </div>
     </div>
 
-    <!-- FULL RESOLUTION EXPANDED MAP MODAL -->
+    <!-- MODAL ZOOM INSPECTOR -->
     <div id="image-modal" class="modal-overlay hidden">
-        <div class="modal-content-box">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Generated Map Inspection</h3>
-                <div class="modal-header-actions">
-                    <button class="btn-modal-tool" id="btn-modal-zoom-in" title="Zoom In">+</button>
-                    <button class="btn-modal-tool" id="btn-modal-zoom-out" title="Zoom Out">−</button>
-                    <button class="btn-modal-tool" id="btn-modal-zoom-reset" title="Reset Zoom">Reset</button>
-                    <button class="modal-close-btn" id="modal-close-btn">&times;</button>
+                <div>
+                    <h3 id="modal-title" style="font-family: var(--font-heading); font-weight: 700;">Inspection Viewer</h3>
+                    <p id="modal-sub-info" style="font-size: 12px; color: #94a3b8;">Use mouse wheel to zoom, drag to pan</p>
+                </div>
+                <div>
+                    <button class="btn-secondary" id="btn-modal-zoom-reset">Reset Zoom</button>
+                    <button class="btn-secondary" id="modal-close-btn" style="background: #ef4444; color: #fff; border: none;">✕ Close</button>
                 </div>
             </div>
-            <div class="modal-body" id="modal-pan-container">
-                <img id="modal-image-display" src="" alt="Full View">
-            </div>
-            <div class="modal-footer">
-                <span id="modal-sub-info" class="modal-sub-info">High-Resolution Layer View</span>
-                <a id="modal-download-link" href="#" download class="btn-download-zip">Download PNG</a>
+            <div class="modal-body-viewport" id="modal-pan-container">
+                <img id="modal-image-display" class="modal-image-display" src="" alt="High Res Map">
             </div>
         </div>
     </div>

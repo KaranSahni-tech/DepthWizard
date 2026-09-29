@@ -1,4 +1,4 @@
-// --- PS 175 REMOTE SENSING & 2D MULTI-LAYER ELEVATION CONTROLLER ---
+// --- DEPTHWIZARD — SAAS DASHBOARD CONTROLLER (SIH PS 175) ---
 
 function getApiBaseUrl() {
     if (typeof window !== 'undefined') {
@@ -106,7 +106,7 @@ let currentMetadata = null;
 let currentBuildings = null;
 let currentStatistics = null;
 let currentMapUrls = {};
-let activeJsonTab = "metadata";
+let selectedFile = null;
 
 // Modal zoom state
 let modalZoom = 1.0;
@@ -115,241 +115,250 @@ let startX = 0, startY = 0;
 let panX = 0, panY = 0;
 
 const MAP_TITLES = {
-    rgb: "MAP 1 — Original RGB",
+    rgb: "MAP 1 — Original RGB Image",
     depth: "MAP 2 — Depth Map",
-    rdsm: "MAP 3 — Relative DSM / rDSM",
+    rdsm: "MAP 3 — Relative DSM (rDSM)",
     elevation_heatmap: "MAP 4 — Elevation Heatmap",
     building_detection: "MAP 5 — Building Detection Map",
     building_height: "MAP 6 — Building Height Map",
-    edges: "MAP 7 — Edge / Boundary Map",
+    edges: "MAP 7 — Edge & Boundary Map",
     building_boundaries: "MAP 8 — Building Footprint Map",
     slope: "MAP 9 — Slope Map",
-    terrain_relief: "MAP 10 — Terrain / Relief Map",
+    terrain_relief: "MAP 10 — Terrain Relief / Hillshade",
     semantic: "MAP 11 — Semantic Classification Map",
-    error: "MAP 12 — Model Confidence / Uncertainty Map"
-};
-
-// DOM References
-const DOM = {
-    // Top Bar & Buttons
-    headerBtnUpload: document.getElementById('header-btn-upload'),
-    btnBrowseFiles: document.getElementById('btn-browse-files'),
-    btnSampleSatellite: document.getElementById('btn-sample-satellite'),
-    btnSampleImage2: document.getElementById('btn-sample-image2'),
-    fileInputHidden: document.getElementById('file-input-hidden'),
-    dropzoneArea: document.getElementById('dropzone-area'),
-    
-    // Sections
-    sectionUpload: document.getElementById('section-upload'),
-    sectionProcessing: document.getElementById('section-processing'),
-    sectionDashboard: document.getElementById('section-dashboard'),
-    
-    // Input Specs Preview Card
-    inputPreviewImg: document.getElementById('input-preview-img'),
-    infoFilename: document.getElementById('info-filename'),
-    infoResolution: document.getElementById('info-resolution'),
-    infoFormat: document.getElementById('info-format'),
-    infoChannels: document.getElementById('info-channels'),
-    infoGeospatial: document.getElementById('info-geospatial'),
-    infoSize: document.getElementById('info-size'),
-
-    // Progress Monitor
-    progressBarFill: document.getElementById('progress-bar-fill'),
-    progressPercentText: document.getElementById('progress-percent-text'),
-    stageTitle: document.getElementById('stage-title'),
-    stageMessage: document.getElementById('stage-message'),
-    stageSteps: document.querySelectorAll('.stage-step'),
-
-    // Dashboard Header & Key Metrics
-    sessionIdDisplay: document.getElementById('session-id-display'),
-    sessionTimeDisplay: document.getElementById('session-time-display'),
-    btnDownloadZip: document.getElementById('btn-download-zip'),
-    statBuildingCount: document.getElementById('stat-building-count'),
-    statImageSize: document.getElementById('stat-image-size'),
-    statImageFormat: document.getElementById('stat-image-format'),
-    statDepthRange: document.getElementById('stat-depth-range'),
-    statElevationMax: document.getElementById('stat-elevation-max'),
-    statGeospatialStatus: document.getElementById('stat-geospatial-status'),
-    statGeospatialSub: document.getElementById('stat-geospatial-sub'),
-    statConfidence: document.getElementById('stat-confidence'),
-
-    // Tabs
-    dashTabs: document.querySelectorAll('.dash-tab'),
-    tabPanes: document.querySelectorAll('.tab-pane'),
-
-    // Compare Mode
-    compareSelectLeft: document.getElementById('compare-select-left'),
-    compareSelectRight: document.getElementById('compare-select-right'),
-    compareTitleLeft: document.getElementById('compare-title-left'),
-    compareTitleRight: document.getElementById('compare-title-right'),
-    compareImgLeft: document.getElementById('compare-img-left'),
-    compareImgRight: document.getElementById('compare-img-right'),
-    btnSwapCompare: document.getElementById('btn-swap-compare'),
-
-    // Analysis Data
-    adFilename: document.getElementById('ad-filename'),
-    adFormat: document.getElementById('ad-format'),
-    adDims: document.getElementById('ad-dims'),
-    adChannels: document.getElementById('ad-channels'),
-    adSize: document.getElementById('ad-size'),
-    adTime: document.getElementById('ad-time'),
-
-    // Geospatial Info
-    geoStatus: document.getElementById('geo-status'),
-    geoCrs: document.getElementById('geo-crs'),
-    geoEpsg: document.getElementById('geo-epsg'),
-    geoPixelSize: document.getElementById('geo-pixel-size'),
-    geoBounds: document.getElementById('geo-bounds'),
-    geoCoverage: document.getElementById('geo-coverage'),
-
-    // Elevation & Quality
-    adElevType: document.getElementById('ad-elev-type'),
-    adElevMin: document.getElementById('ad-elev-min'),
-    adElevMax: document.getElementById('ad-elev-max'),
-    adElevMean: document.getElementById('ad-elev-mean'),
-    adElevMedian: document.getElementById('ad-elev-median'),
-    adQConf: document.getElementById('ad-q-conf'),
-    adQMae: document.getElementById('ad-q-mae'),
-    adQRmse: document.getElementById('ad-q-rmse'),
-    adQCorr: document.getElementById('ad-q-corr'),
-    adQValid: document.getElementById('ad-q-valid'),
-    adQStatus: document.getElementById('ad-q-status'),
-
-    // Building Table & Summary
-    bsumCount: document.getElementById('bsum-count'),
-    bsumAvgH: document.getElementById('bsum-avg-h'),
-    bsumMaxH: document.getElementById('bsum-max-h'),
-    bsumMinH: document.getElementById('bsum-min-h'),
-    bsumArea: document.getElementById('bsum-area'),
-    bsumConf: document.getElementById('bsum-conf'),
-    buildingsTableBody: document.getElementById('buildings-table-body'),
-
-    // JSON Subtabs & Actions
-    jsonSubtabs: document.querySelectorAll('.btn-subtab'),
-    jsonCodeDisplay: document.getElementById('json-code-display'),
-    btnCopyJson: document.getElementById('btn-copy-json'),
-    btnDownloadJson: document.getElementById('btn-download-json'),
-
-    // Modal
-    imageModal: document.getElementById('image-modal'),
-    modalTitle: document.getElementById('modal-title'),
-    modalSubInfo: document.getElementById('modal-sub-info'),
-    modalImageDisplay: document.getElementById('modal-image-display'),
-    modalPanContainer: document.getElementById('modal-pan-container'),
-    modalDownloadLink: document.getElementById('modal-download-link'),
-    modalCloseBtn: document.getElementById('modal-close-btn'),
-    btnModalZoomIn: document.getElementById('btn-modal-zoom-in'),
-    btnModalZoomOut: document.getElementById('btn-modal-zoom-out'),
-    btnModalZoomReset: document.getElementById('btn-modal-zoom-reset')
+    error: "MAP 12 — Model Uncertainty / Confidence Map"
 };
 
 // INITIALIZATION
 window.addEventListener('DOMContentLoaded', () => {
+    initNavigation();
     initEvents();
-    initTabs();
     initCompareControls();
     initModalPanZoom();
+    checkApiConnection();
 
-    // Check if initial session exists (e.g. image3_output or latest)
+    // Check initial session
     safeFetchJson(getApiUrl('/api/results?session_id=image3_output'))
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 renderResults(data);
             }
         })
         .catch(() => {});
 });
 
-function initApiConfigDialog() {
-    const btn = document.getElementById('header-btn-api-config');
-    if (!btn) return;
+// NAVIGATION CONTROLLER FOR 11 VIEWS
+function initNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const viewSections = document.querySelectorAll('.view-section');
+    const pageTitle = document.getElementById('header-page-title');
+    const pageSub = document.getElementById('header-page-sub');
 
-    btn.addEventListener('click', () => {
-        const current = getApiBaseUrl() || "(Relative / Default Vercel Domain)";
-        const newUrl = prompt(
-            `Configure Production Backend API URL:\n\nCurrent active API base: ${current}\n\nEnter your backend URL (e.g. http://localhost:5000 or https://your-backend-domain.com):`,
-            localStorage.getItem('DEPTHWIZARD_API_URL') || ""
-        );
-        if (newUrl !== null) {
-            if (newUrl.trim() === "") {
-                localStorage.removeItem('DEPTHWIZARD_API_URL');
-                alert("Cleared custom API URL override. Now using default environment settings.");
-            } else {
-                localStorage.setItem('DEPTHWIZARD_API_URL', newUrl.trim());
-                alert(`Backend API URL saved: ${newUrl.trim()}\nAll future analysis requests will be routed to this backend engine.`);
-            }
-        }
+    function switchView(targetId, titleText, subText) {
+        navItems.forEach(item => item.classList.remove('active'));
+        viewSections.forEach(sec => sec.classList.remove('active'));
+
+        const targetNav = document.querySelector(`.nav-item[data-target="${targetId}"]`);
+        const targetSection = document.getElementById(targetId);
+
+        if (targetNav) targetNav.classList.add('active');
+        if (targetSection) targetSection.classList.add('active');
+
+        if (pageTitle && titleText) pageTitle.textContent = titleText;
+        if (pageSub && subText) pageSub.textContent = subText;
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = item.dataset.target;
+            const title = item.dataset.title;
+            const sub = item.dataset.sub;
+            switchView(target, title, sub);
+        });
     });
+
+    // Mobile Sidebar Toggle
+    const sidebar = document.getElementById('app-sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    const closeBtn = document.getElementById('sidebar-close-btn');
+
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => sidebar.classList.add('open'));
+    }
+    if (closeBtn && sidebar) {
+        closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+    }
+
+    // Quick Action Card Links
+    const qaUpload = document.getElementById('qa-upload');
+    const qaLayers = document.getElementById('qa-layers');
+    const qaBuildings = document.getElementById('qa-buildings');
+    const qaReports = document.getElementById('qa-reports');
+    const bannerStart = document.getElementById('banner-btn-start');
+    const bannerLayers = document.getElementById('banner-btn-layers');
+    const headerBtnNew = document.getElementById('header-btn-new-analysis');
+    const dashViewAll = document.getElementById('dash-btn-view-all');
+
+    if (qaUpload) qaUpload.addEventListener('click', () => switchView('view-new-analysis', 'New Analysis Workspace', 'Upload imagery and configure extraction.'));
+    if (qaLayers) qaLayers.addEventListener('click', () => switchView('view-map-layers', '12 Thematic Map Layers', 'Explore AI-generated depth, rDSM, and slope maps.'));
+    if (qaBuildings) qaBuildings.addEventListener('click', () => switchView('view-building-analysis', 'Building Analysis', 'Detected footprints and height profiles.'));
+    if (qaReports) qaReports.addEventListener('click', () => switchView('view-reports', 'Reports & Exports', 'Download full ZIPs and metadata.'));
+    if (bannerStart) bannerStart.addEventListener('click', () => switchView('view-new-analysis', 'New Analysis Workspace', 'Upload imagery and configure extraction.'));
+    if (bannerLayers) bannerLayers.addEventListener('click', () => switchView('view-map-layers', '12 Thematic Map Layers', 'Explore AI-generated depth, rDSM, and slope maps.'));
+    if (headerBtnNew) headerBtnNew.addEventListener('click', () => switchView('view-new-analysis', 'New Analysis Workspace', 'Upload imagery and configure extraction.'));
+    if (dashViewAll) dashViewAll.addEventListener('click', () => switchView('view-history', 'Analysis History', 'Review past remote-sensing sessions.'));
 }
 
 function initEvents() {
     initApiConfigDialog();
-    if (DOM.headerBtnUpload) {
-        DOM.headerBtnUpload.addEventListener('click', () => {
-            DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
-        });
-    }
 
-    if (DOM.btnBrowseFiles && DOM.fileInputHidden) {
-        DOM.btnBrowseFiles.addEventListener('click', () => DOM.fileInputHidden.click());
-        DOM.fileInputHidden.addEventListener('change', (e) => {
+    const fileInput = document.getElementById('file-input-hidden');
+    const browseBtn = document.getElementById('btn-browse-files');
+    const dropzone = document.getElementById('dropzone-area');
+    const sampleSat = document.getElementById('btn-sample-satellite');
+    const sampleImg2 = document.getElementById('btn-sample-image2');
+    const startBtn = document.getElementById('btn-start-analysis');
+
+    if (browseBtn && fileInput) {
+        browseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFileUpload(e.target.files[0]);
             }
         });
     }
 
-    // Preset Sample Buttons
-    if (DOM.btnSampleSatellite) {
-        DOM.btnSampleSatellite.addEventListener('click', () => handleSampleSelect('satellite.jpg'));
-    }
-    if (DOM.btnSampleImage2) {
-        DOM.btnSampleImage2.addEventListener('click', () => handleSampleSelect('image2.jpg'));
-    }
+    if (sampleSat) sampleSat.addEventListener('click', () => handleSampleSelect('satellite.jpg'));
+    if (sampleImg2) sampleImg2.addEventListener('click', () => handleSampleSelect('image2.jpg'));
+    
+    // Sample buttons in dataset tab
+    const dsSat = document.getElementById('ds-sample-satellite');
+    const dsImg2 = document.getElementById('ds-sample-image2');
+    if (dsSat) dsSat.addEventListener('click', () => handleSampleSelect('satellite.jpg'));
+    if (dsImg2) dsImg2.addEventListener('click', () => handleSampleSelect('image2.jpg'));
 
-    // Drag and Drop
-    if (DOM.dropzoneArea) {
+    if (dropzone) {
         ['dragenter', 'dragover'].forEach(evt => {
-            DOM.dropzoneArea.addEventListener(evt, (e) => {
+            dropzone.addEventListener(evt, (e) => {
                 e.preventDefault();
-                DOM.dropzoneArea.classList.add('dragover');
+                dropzone.classList.add('dragover');
             });
         });
         ['dragleave', 'drop'].forEach(evt => {
-            DOM.dropzoneArea.addEventListener(evt, (e) => {
+            dropzone.addEventListener(evt, (e) => {
                 e.preventDefault();
-                DOM.dropzoneArea.classList.remove('dragover');
+                dropzone.classList.remove('dragover');
             });
         });
-        DOM.dropzoneArea.addEventListener('drop', (e) => {
+        dropzone.addEventListener('drop', (e) => {
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 handleFileUpload(e.dataTransfer.files[0]);
             }
         });
     }
 
-    // Download Zip
-    if (DOM.btnDownloadZip) {
-        DOM.btnDownloadZip.addEventListener('click', () => {
-            if (activeSessionId) {
-                window.location.href = getApiUrl(`/api/download_all?session_id=${activeSessionId}`);
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            if (!selectedFile && !window.selectedPreset) {
+                alert("Please select or drop an image file first.");
+                return;
             }
+            const formData = new FormData();
+            if (selectedFile) {
+                formData.append('image', selectedFile);
+            } else if (window.selectedPreset) {
+                formData.append('preset', window.selectedPreset);
+            }
+            startPipeline(formData);
         });
     }
 
-    // Gallery Actions (Expand, Compare, Download buttons inside cards)
+    // Radio card mode toggles
+    const optRel = document.getElementById('opt-relative-card');
+    const optCal = document.getElementById('opt-calibrated-card');
+    if (optRel && optCal) {
+        optRel.addEventListener('click', () => {
+            optRel.classList.add('selected');
+            optCal.classList.remove('selected');
+        });
+        optCal.addEventListener('click', () => {
+            optCal.classList.add('selected');
+            optRel.classList.remove('selected');
+        });
+    }
+
+    // Export buttons
+    const btnZip = document.getElementById('btn-download-zip');
+    const btnZipMain = document.getElementById('btn-export-zip-main');
+    const handleZip = () => {
+        if (activeSessionId) {
+            window.location.href = getApiUrl(`/api/download_all?session_id=${activeSessionId}`);
+        } else {
+            alert("No active session loaded to export.");
+        }
+    };
+    if (btnZip) btnZip.addEventListener('click', handleZip);
+    if (btnZipMain) btnZipMain.addEventListener('click', handleZip);
+
+    // JSON Export buttons
+    const btnMeta = document.getElementById('btn-export-meta-json');
+    const btnBldg = document.getElementById('btn-export-bldg-json');
+    const btnStats = document.getElementById('btn-export-stats-json');
+    if (btnMeta) btnMeta.addEventListener('click', () => downloadJsonFile(currentMetadata, 'metadata.json'));
+    if (btnBldg) btnBldg.addEventListener('click', () => downloadJsonFile(currentBuildings, 'buildings.json'));
+    if (btnStats) btnStats.addEventListener('click', () => downloadJsonFile(currentStatistics, 'statistics.json'));
+
+    // Building Search
+    const bldgSearch = document.getElementById('bldg-search-input');
+    if (bldgSearch) {
+        bldgSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#buildings-table-body tr');
+            rows.forEach(r => {
+                const text = r.textContent.toLowerCase();
+                r.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
+    // Settings save & test
+    const settingsSave = document.getElementById('settings-btn-save');
+    const settingsTest = document.getElementById('settings-btn-test');
+    const settingsInput = document.getElementById('settings-api-url');
+    if (settingsInput) settingsInput.value = localStorage.getItem('DEPTHWIZARD_API_URL') || '';
+
+    if (settingsSave && settingsInput) {
+        settingsSave.addEventListener('click', () => {
+            const val = settingsInput.value.trim();
+            if (val === '') {
+                localStorage.removeItem('DEPTHWIZARD_API_URL');
+                alert("Cleared custom API URL override.");
+            } else {
+                localStorage.setItem('DEPTHWIZARD_API_URL', val);
+                alert(`Saved API Server URL: ${val}`);
+            }
+            checkApiConnection();
+        });
+    }
+
+    if (settingsTest) {
+        settingsTest.addEventListener('click', () => checkApiConnection(true));
+    }
+
+    // Gallery Actions
     document.addEventListener('click', (e) => {
         const viewBtn = e.target.closest('.view-btn');
         if (viewBtn) {
-            const key = viewBtn.dataset.key;
-            openModal(key);
+            openModal(viewBtn.dataset.key);
             return;
         }
 
         const compareBtn = e.target.closest('.compare-btn');
         if (compareBtn) {
-            const key = compareBtn.dataset.key;
-            activateCompareWith(key);
+            activateCompareWith(compareBtn.dataset.key);
             return;
         }
 
@@ -364,151 +373,67 @@ function initEvents() {
             }
             return;
         }
-    });
 
-    // JSON Subtabs
-    DOM.jsonSubtabs.forEach(btn => {
-        btn.addEventListener('click', () => {
-            DOM.jsonSubtabs.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            activeJsonTab = btn.dataset.json;
-            updateJsonDisplay();
-        });
-    });
-
-    if (DOM.btnCopyJson) {
-        DOM.btnCopyJson.addEventListener('click', () => {
-            const code = DOM.jsonCodeDisplay.textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                const orig = DOM.btnCopyJson.textContent;
-                DOM.btnCopyJson.textContent = "✓ Copied!";
-                setTimeout(() => DOM.btnCopyJson.textContent = orig, 1800);
-            });
-        });
-    }
-
-    if (DOM.btnDownloadJson) {
-        DOM.btnDownloadJson.addEventListener('click', () => {
-            const code = DOM.jsonCodeDisplay.textContent;
-            const blob = new Blob([code], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${activeJsonTab}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-    }
-}
-
-function initTabs() {
-    DOM.dashTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            DOM.dashTabs.forEach(t => t.classList.remove('active'));
-            DOM.tabPanes.forEach(p => p.classList.add('hidden'));
-
-            tab.classList.add('active');
-            const targetPane = document.getElementById(tab.dataset.tab);
-            if (targetPane) {
-                targetPane.classList.remove('hidden');
-            }
-        });
-    });
-}
-
-function initCompareControls() {
-    function updateCompareViews() {
-        const leftKey = DOM.compareSelectLeft.value;
-        const rightKey = DOM.compareSelectRight.value;
-
-        DOM.compareTitleLeft.textContent = MAP_TITLES[leftKey] || leftKey;
-        DOM.compareTitleRight.textContent = MAP_TITLES[rightKey] || rightKey;
-
-        if (currentMapUrls[leftKey]) {
-            DOM.compareImgLeft.src = currentMapUrls[leftKey];
+        const reloadBtn = e.target.closest('.btn-reload-session, .btn-view-analysis-row');
+        if (reloadBtn) {
+            const sid = reloadBtn.dataset.session;
+            if (sid) loadSession(sid);
+            return;
         }
-        if (currentMapUrls[rightKey]) {
-            DOM.compareImgRight.src = currentMapUrls[rightKey];
-        }
-    }
-
-    DOM.compareSelectLeft.addEventListener('change', updateCompareViews);
-    DOM.compareSelectRight.addEventListener('change', updateCompareViews);
-
-    if (DOM.btnSwapCompare) {
-        DOM.btnSwapCompare.addEventListener('click', () => {
-            const temp = DOM.compareSelectLeft.value;
-            DOM.compareSelectLeft.value = DOM.compareSelectRight.value;
-            DOM.compareSelectRight.value = temp;
-            updateCompareViews();
-        });
-    }
-}
-
-function activateCompareWith(selectedKey) {
-    // Switch to compare tab
-    DOM.dashTabs.forEach(t => t.classList.remove('active'));
-    DOM.tabPanes.forEach(p => p.classList.add('hidden'));
-
-    const compareTab = document.querySelector('[data-tab="tab-compare"]');
-    const comparePane = document.getElementById('tab-compare');
-    if (compareTab && comparePane) {
-        compareTab.classList.add('active');
-        comparePane.classList.remove('hidden');
-    }
-
-    // Set right comparison layer
-    DOM.compareSelectRight.value = selectedKey;
-    DOM.compareSelectRight.dispatchEvent(new Event('change'));
-    comparePane.scrollIntoView({ behavior: 'smooth' });
+    });
 }
 
 function handleFileUpload(file) {
     if (!file) return;
 
-    // Client-side quick preview
+    // Validate format
+    const allowed = ['image/jpeg', 'image/png', 'image/tiff', 'image/webp'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'tif', 'tiff', 'webp'].includes(ext)) {
+        alert(`Unsupported file format '.${ext}'. Please upload JPG, PNG, TIFF, or GeoTIFF.`);
+        return;
+    }
+
+    selectedFile = file;
+    window.selectedPreset = null;
+
     const reader = new FileReader();
     reader.onload = (e) => {
-        DOM.inputPreviewImg.src = e.target.result;
+        const img = document.getElementById('input-preview-img');
+        if (img) img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 
-    DOM.infoFilename.textContent = file.name;
-    DOM.infoSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-    DOM.infoFormat.textContent = file.name.split('.').pop().toUpperCase();
-    DOM.infoGeospatial.textContent = (file.name.endsWith('.tif') || file.name.endsWith('.tiff')) ? "Analyzing CRS..." : "Non-Georeferenced (Relative only)";
-
-    const formData = new FormData();
-    formData.append('image', file);
-
-    startPipeline(formData);
+    document.getElementById('info-filename').textContent = file.name;
+    document.getElementById('info-size').textContent = `${(file.size / 1024).toFixed(1)} KB`;
+    document.getElementById('info-format').textContent = ext.toUpperCase();
+    document.getElementById('info-geospatial').textContent = (ext === 'tif' || ext === 'tiff') ? "GeoTIFF (Metadata Check)" : "Non-Geo (Relative Grid)";
 }
 
 function handleSampleSelect(sampleName) {
-    DOM.infoFilename.textContent = sampleName;
-    DOM.infoFormat.textContent = sampleName.split('.').pop().toUpperCase();
-    DOM.infoGeospatial.textContent = "Sample Dataset (Relative Elevation)";
-    DOM.inputPreviewImg.src = `/${sampleName}`;
+    selectedFile = null;
+    window.selectedPreset = sampleName;
 
-    const formData = new FormData();
-    formData.append('preset', sampleName);
+    const img = document.getElementById('input-preview-img');
+    if (img) img.src = getApiUrl(`/${sampleName}`);
 
-    startPipeline(formData);
+    document.getElementById('info-filename').textContent = sampleName;
+    document.getElementById('info-format').textContent = sampleName.split('.').pop().toUpperCase();
+    document.getElementById('info-geospatial').textContent = "Sample Dataset (Relative Elevation)";
+    document.getElementById('info-size').textContent = "Sample Payload";
 }
 
 function startPipeline(formData) {
     if (isAnalyzing) {
-        console.warn('[Pipeline] Analysis already in progress. Ignoring duplicate request.');
+        console.warn('[Pipeline] Analysis already running.');
         return;
     }
     isAnalyzing = true;
 
-    // Show processing section
-    DOM.sectionProcessing.classList.remove('hidden');
-    DOM.sectionDashboard.classList.add('hidden');
-    DOM.sectionProcessing.scrollIntoView({ behavior: 'smooth' });
+    const procCard = document.getElementById('section-processing');
+    if (procCard) procCard.classList.remove('hidden');
 
-    updateProgressBar(5, "Submitting payload...");
+    updateProgressBar(5, "Submitting remote sensing payload to Python backend engine...");
 
     safeFetchJson(getApiUrl('/api/analyze'), {
         method: 'POST',
@@ -516,7 +441,7 @@ function startPipeline(formData) {
     })
     .then(data => {
         if (!data.success) {
-            throw new Error(data.error || "Failed to start remote-sensing pipeline.");
+            throw new Error(data.error || "Failed to start pipeline.");
         }
         activeSessionId = data.session_id || data.generation_id;
         startPolling(activeSessionId);
@@ -525,8 +450,7 @@ function startPipeline(formData) {
         console.error('[Analysis Startup Error]', err);
         isAnalyzing = false;
         alert(`Error starting analysis: ${err.message}`);
-        DOM.sectionProcessing.classList.add('hidden');
-        DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
+        if (procCard) procCard.classList.add('hidden');
     });
 }
 
@@ -539,45 +463,34 @@ function startPolling(sessionId) {
                 if (!progress.success && progress.status === 'error') {
                     clearInterval(pollInterval);
                     isAnalyzing = false;
-                    console.error('[Pipeline Execution Error]', progress);
                     alert(`Pipeline error: ${progress.error || 'Unknown error'}`);
-                    DOM.sectionProcessing.classList.add('hidden');
-                    DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
+                    const procCard = document.getElementById('section-processing');
+                    if (procCard) procCard.classList.add('hidden');
                     return;
                 }
 
                 const pct = progress.progress || 10;
                 updateProgressBar(pct, progress.message || progress.step_name);
-                highlightStageStep(progress.step_index || 1);
 
                 if (progress.status === 'completed' || pct >= 100) {
                     clearInterval(pollInterval);
-                    setTimeout(() => fetchResults(sessionId), 700);
+                    setTimeout(() => fetchResults(sessionId), 600);
                 }
             })
             .catch(err => {
-                console.warn('[Polling Error]', err);
+                console.warn('[Polling Progress Warning]', err);
             });
     }, 600);
 }
 
 function updateProgressBar(percent, msg) {
-    DOM.progressBarFill.style.width = `${percent}%`;
-    DOM.progressPercentText.textContent = `${percent}%`;
-    DOM.stageMessage.textContent = msg;
-}
+    const fill = document.getElementById('progress-bar-fill');
+    const txt = document.getElementById('progress-percent-text');
+    const sub = document.getElementById('stage-message');
 
-function highlightStageStep(stepIdx) {
-    DOM.stageSteps.forEach((st) => {
-        const stepNum = parseInt(st.dataset.step, 10);
-        if (stepNum < stepIdx) {
-            st.className = 'stage-step completed';
-        } else if (stepNum === stepIdx) {
-            st.className = 'stage-step active';
-        } else {
-            st.className = 'stage-step';
-        }
-    });
+    if (fill) fill.style.width = `${percent}%`;
+    if (txt) txt.textContent = `${percent}%`;
+    if (sub) sub.textContent = msg;
 }
 
 function fetchResults(sessionId) {
@@ -587,18 +500,24 @@ function fetchResults(sessionId) {
             if (!data.success) {
                 throw new Error(data.error || "Failed loading analysis results.");
             }
-            DOM.sectionProcessing.classList.add('hidden');
-            DOM.sectionDashboard.classList.remove('hidden');
+            const procCard = document.getElementById('section-processing');
+            if (procCard) procCard.classList.add('hidden');
+
             renderResults(data);
-            DOM.sectionDashboard.scrollIntoView({ behavior: 'smooth' });
+
+            // Switch view to 12 Map Layers
+            const mapNav = document.querySelector('.nav-item[data-target="view-map-layers"]');
+            if (mapNav) mapNav.click();
         })
         .catch(err => {
             isAnalyzing = false;
             console.error('[Fetch Results Error]', err);
             alert(`Error retrieving results: ${err.message}`);
-            DOM.sectionProcessing.classList.add('hidden');
-            DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
         });
+}
+
+function loadSession(sessionId) {
+    fetchResults(sessionId);
 }
 
 function renderResults(data) {
@@ -608,7 +527,7 @@ function renderResults(data) {
     currentStatistics = data.statistics || {};
     currentMapUrls = data.map_urls || {};
 
-    // Transform relative asset URLs using getApiUrl
+    // Transform map URLs using getApiUrl
     Object.keys(currentMapUrls).forEach(k => {
         if (currentMapUrls[k]) {
             currentMapUrls[k] = getApiUrl(currentMapUrls[k]);
@@ -617,35 +536,27 @@ function renderResults(data) {
 
     const meta = currentMetadata;
     const imgInfo = meta.image || {};
-    const depthInfo = meta.depth || {};
     const elevInfo = meta.elevation || {};
     const bldgSummary = (currentBuildings.summary) || meta.buildings || {};
     const geoInfo = meta.geospatial || {};
-    const qualityInfo = meta.quality || {};
 
-    // Header Pills
-    DOM.sessionIdDisplay.textContent = `Session: ${activeSessionId}`;
-    DOM.sessionTimeDisplay.textContent = new Date().toLocaleTimeString();
+    // Update Dashboard Metrics
+    const totalElem = document.getElementById('dash-stat-total');
+    const imgsElem = document.getElementById('dash-stat-images');
+    const bldgElem = document.getElementById('dash-stat-buildings');
+    const expElem = document.getElementById('dash-stat-exports');
+    if (totalElem) totalElem.textContent = "12";
+    if (imgsElem) imgsElem.textContent = "12";
+    if (bldgElem) bldgElem.textContent = bldgSummary.count !== undefined ? bldgSummary.count : 48;
+    if (expElem) expElem.textContent = "12";
 
-    // 6 Key Stat Cards
-    DOM.statBuildingCount.textContent = bldgSummary.count || 0;
-    DOM.statImageSize.textContent = `${imgInfo.width || '--'} × ${imgInfo.height || '--'}`;
-    DOM.statImageFormat.textContent = `${imgInfo.format || 'RGB'} (${imgInfo.channels || 3} Ch)`;
-    DOM.statDepthRange.textContent = `${depthInfo.min !== undefined ? depthInfo.min : '--'} - ${depthInfo.max !== undefined ? depthInfo.max : '--'}`;
-    DOM.statElevationMax.textContent = elevInfo.max !== undefined ? elevInfo.max : '--';
-    
-    // Geospatial Status
-    if (geoInfo.georeferenced) {
-        DOM.statGeospatialStatus.textContent = geoInfo.epsg ? `EPSG:${geoInfo.epsg}` : "GeoTIFF";
-        DOM.statGeospatialSub.textContent = "Georeferenced bounds";
-    } else {
-        DOM.statGeospatialStatus.textContent = "Non-Geo";
-        DOM.statGeospatialSub.textContent = "Relative scale only";
-    }
+    // Update Session Pill
+    const sessDisplay = document.getElementById('session-id-display');
+    const timeDisplay = document.getElementById('session-time-display');
+    if (sessDisplay) sessDisplay.textContent = `Session: ${activeSessionId}`;
+    if (timeDisplay) timeDisplay.textContent = new Date().toLocaleTimeString();
 
-    DOM.statConfidence.textContent = qualityInfo.confidence ? `${Math.round(qualityInfo.confidence * 100)}%` : "--%";
-
-    // Render 12 Maps Gallery
+    // Populate 12 Maps Gallery
     Object.keys(MAP_TITLES).forEach(key => {
         const imgElem = document.getElementById(`map-img-${key}`);
         if (imgElem && currentMapUrls[key]) {
@@ -653,180 +564,212 @@ function renderResults(data) {
         }
     });
 
-    // Sub-pills under maps
-    const pillDepth = document.getElementById('pill-depth');
-    if (pillDepth && depthInfo.min !== undefined) {
-        pillDepth.innerHTML = `<span>Min: ${depthInfo.min}</span> | <span>Max: ${depthInfo.max}</span> | <span>unit: relative</span>`;
-    }
-    const pillRdsm = document.getElementById('pill-rdsm');
-    if (pillRdsm && elevInfo.max !== undefined) {
-        pillRdsm.innerHTML = `<span>Surface Model</span> | <span>Max Elev: ${elevInfo.max} (relative)</span>`;
-    }
-    const pillElev = document.getElementById('pill-elev');
-    if (pillElev && elevInfo.mean !== undefined) {
-        pillElev.innerHTML = `<span>Mean: ${elevInfo.mean}</span> | <span>Unit: Relative Elevation</span>`;
-    }
-    const pillBldgDet = document.getElementById('pill-bldg-det');
-    if (pillBldgDet && bldgSummary.count !== undefined) {
-        pillBldgDet.innerHTML = `<span>${bldgSummary.count} Buildings</span> | <span>Avg Conf: ${Math.round((bldgSummary.average_confidence || 0) * 100)}%</span>`;
-    }
-    const pillBldgH = document.getElementById('pill-bldg-h');
-    if (pillBldgH && bldgSummary.maximum_height !== undefined) {
-        pillBldgH.innerHTML = `<span>Max H: ${bldgSummary.maximum_height}</span> | <span>Avg H: ${bldgSummary.average_height} (relative)</span>`;
-    }
+    // Populate Building Table & Stats
+    const bCount = document.getElementById('bsum-count');
+    const bAvgH = document.getElementById('bsum-avg-h');
+    const bMaxH = document.getElementById('bsum-max-h');
+    const bArea = document.getElementById('bsum-area');
 
-    // Populate Analysis Data Section
-    DOM.adFilename.textContent = imgInfo.filename || '--';
-    DOM.adFormat.textContent = imgInfo.format || '--';
-    DOM.adDims.textContent = `${imgInfo.width || '--'} × ${imgInfo.height || '--'} px`;
-    DOM.adChannels.textContent = `${imgInfo.channels || 3} (RGB)`;
-    DOM.adSize.textContent = imgInfo.file_size_bytes ? `${(imgInfo.file_size_bytes / 1024).toFixed(1)} KB` : '-- KB';
-    DOM.adTime.textContent = imgInfo.processing_time_seconds ? `${imgInfo.processing_time_seconds}s` : '--';
-
-    // Geospatial Info
-    DOM.geoStatus.textContent = geoInfo.georeferenced ? "✓ Georeferenced (True)" : "✗ Non-Georeferenced";
-    DOM.geoCrs.textContent = geoInfo.crs || "Georeferencing: Not Available";
-    DOM.geoEpsg.textContent = geoInfo.epsg ? `EPSG:${geoInfo.epsg}` : "None";
-    DOM.geoPixelSize.textContent = geoInfo.pixel_size ? `${geoInfo.pixel_size[0].toFixed(4)} × ${geoInfo.pixel_size[1].toFixed(4)}` : "Relative pixel grid";
-    DOM.geoBounds.textContent = geoInfo.bounds ? `[${geoInfo.bounds.map(b => b.toFixed(2)).join(', ')}]` : "None";
-    DOM.geoCoverage.textContent = geoInfo.coordinates && geoInfo.coordinates.center ? `Center: ${geoInfo.coordinates.center.map(c => c.toFixed(4)).join(', ')}` : "Local image space";
-
-    // Elevation Stats
-    DOM.adElevType.textContent = elevInfo.type || "relative";
-    DOM.adElevMin.textContent = elevInfo.min !== undefined ? elevInfo.min : "0.00";
-    DOM.adElevMax.textContent = elevInfo.max !== undefined ? elevInfo.max : "0.00";
-    DOM.adElevMean.textContent = elevInfo.mean !== undefined ? elevInfo.mean : "0.00";
-    DOM.adElevMedian.textContent = elevInfo.median !== undefined ? elevInfo.median : "0.00";
-
-    // Quality Stats
-    DOM.adQConf.textContent = qualityInfo.confidence ? `${(qualityInfo.confidence * 100).toFixed(1)}%` : "--";
-    DOM.adQMae.textContent = qualityInfo.mae !== null ? qualityInfo.mae : "null (No Ground Truth DEM)";
-    DOM.adQRmse.textContent = qualityInfo.rmse !== null ? qualityInfo.rmse : "null (No Ground Truth DEM)";
-    DOM.adQCorr.textContent = qualityInfo.correlation !== null ? qualityInfo.correlation : "null";
-    DOM.adQValid.textContent = "100% (No invalid pixels)";
-    DOM.adQStatus.textContent = qualityInfo.quality_status || "PASS";
-
-    // Building Summary & Table
-    DOM.bsumCount.textContent = bldgSummary.count || 0;
-    DOM.bsumAvgH.textContent = bldgSummary.average_height !== undefined ? bldgSummary.average_height : "0.00";
-    DOM.bsumMaxH.textContent = bldgSummary.maximum_height !== undefined ? bldgSummary.maximum_height : "0.00";
-    DOM.bsumMinH.textContent = bldgSummary.minimum_height !== undefined ? bldgSummary.minimum_height : "0.00";
-    DOM.bsumArea.textContent = bldgSummary.total_area ? `${bldgSummary.total_area.toLocaleString()} px²` : "0 px²";
-    DOM.bsumConf.textContent = bldgSummary.average_confidence ? `${Math.round(bldgSummary.average_confidence * 100)}%` : "0%";
+    if (bCount) bCount.textContent = bldgSummary.count || 0;
+    if (bAvgH) bAvgH.textContent = bldgSummary.average_height !== undefined ? bldgSummary.average_height : '--';
+    if (bMaxH) bMaxH.textContent = bldgSummary.maximum_height !== undefined ? bldgSummary.maximum_height : '--';
+    if (bArea) bArea.textContent = bldgSummary.total_area ? bldgSummary.total_area.toLocaleString() : '0';
 
     renderBuildingTable(currentBuildings.buildings || []);
 
-    // Update Compare Views & JSON Viewer
-    DOM.compareSelectLeft.dispatchEvent(new Event('change'));
-    updateJsonDisplay();
+    // Update Metadata View
+    const geoStatus = document.getElementById('geo-status');
+    const geoCrs = document.getElementById('geo-crs');
+    const geoEpsg = document.getElementById('geo-epsg');
+    const geoPixel = document.getElementById('geo-pixel-size');
+    const geoBounds = document.getElementById('geo-bounds');
+
+    if (geoStatus) geoStatus.textContent = geoInfo.georeferenced ? "✓ Georeferenced (GeoTIFF)" : "Relative local grid (Non-GeoTIFF)";
+    if (geoCrs) geoCrs.textContent = geoInfo.crs || "None";
+    if (geoEpsg) geoEpsg.textContent = geoInfo.epsg ? `EPSG:${geoInfo.epsg}` : "None";
+    if (geoPixel) geoPixel.textContent = geoInfo.pixel_size ? `${geoInfo.pixel_size[0]} × ${geoInfo.pixel_size[1]}` : "1.0 × 1.0 px grid";
+    if (geoBounds) geoBounds.textContent = geoInfo.bounds ? JSON.stringify(geoInfo.bounds) : "N/A";
+
+    // Update JSON inspector
+    const jsonDisp = document.getElementById('json-code-display');
+    if (jsonDisp) jsonDisp.textContent = JSON.stringify(currentMetadata, null, 2);
+
+    // Update Compare Views
+    const compLeft = document.getElementById('compare-select-left');
+    if (compLeft) compLeft.dispatchEvent(new Event('change'));
 }
 
 function renderBuildingTable(buildings) {
-    DOM.buildingsTableBody.innerHTML = '';
+    const tbody = document.getElementById('buildings-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
     if (!buildings || buildings.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">No building structures detected for this image threshold.</td>`;
-        DOM.buildingsTableBody.appendChild(tr);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-muted);">No building structures detected for this image threshold.</td></tr>`;
         return;
     }
 
     buildings.forEach(b => {
         const tr = document.createElement('tr');
-        tr.className = "clickable-bldg-row";
-        tr.dataset.id = b.id;
-
         const bboxStr = b.bounding_box ? `[${b.bounding_box.join(', ')}]` : '--';
         const centerStr = b.center ? `(${b.center[0]}, ${b.center[1]})` : '--';
 
         tr.innerHTML = `
-            <td><strong class="bldg-id-tag">${b.id}</strong></td>
+            <td><strong>${b.id}</strong></td>
             <td><code>${bboxStr}</code></td>
             <td>${b.area_pixels ? b.area_pixels.toLocaleString() : '--'}</td>
-            <td><span class="height-tag">${b.estimated_height !== undefined ? b.estimated_height : '--'}</span></td>
+            <td><strong style="color: var(--primary-blue);">${b.estimated_height !== undefined ? b.estimated_height : '--'}</strong></td>
             <td><code>${b.height_unit || 'relative'}</code></td>
-            <td><span class="conf-badge">${Math.round((b.confidence || 0) * 100)}%</span></td>
+            <td><span class="badge-tag badge-success">${Math.round((b.confidence || 0) * 100)}%</span></td>
             <td><code>${centerStr}</code></td>
         `;
-
-        tr.addEventListener('click', () => {
-            document.querySelectorAll('.clickable-bldg-row').forEach(r => r.classList.remove('selected-bldg'));
-            tr.classList.add('selected-bldg');
-            highlightBuildingPreview(b);
-        });
-
-        DOM.buildingsTableBody.appendChild(tr);
+        tbody.appendChild(tr);
     });
 }
 
-function highlightBuildingPreview(building) {
-    // Open Building Footprint map with alert toast identifying the selected structure
-    openModal('building_boundaries', `Focused Building: ${building.id} | Relative Height: ${building.estimated_height} | Area: ${building.area_pixels} px² | Center: (${building.center.join(', ')})`);
-}
+function initCompareControls() {
+    const leftSel = document.getElementById('compare-select-left');
+    const rightSel = document.getElementById('compare-select-right');
+    const leftImg = document.getElementById('compare-img-left');
+    const rightImg = document.getElementById('compare-img-right');
+    const swapBtn = document.getElementById('btn-swap-compare');
 
-function updateJsonDisplay() {
-    let targetData = currentMetadata;
-    if (activeJsonTab === "buildings") {
-        targetData = currentBuildings;
-    } else if (activeJsonTab === "statistics") {
-        targetData = currentStatistics;
+    function updateCompare() {
+        if (leftSel && leftImg && currentMapUrls[leftSel.value]) {
+            leftImg.src = currentMapUrls[leftSel.value];
+        }
+        if (rightSel && rightImg && currentMapUrls[rightSel.value]) {
+            rightImg.src = currentMapUrls[rightSel.value];
+        }
     }
 
-    DOM.jsonCodeDisplay.textContent = JSON.stringify(targetData, null, 2);
+    if (leftSel) leftSel.addEventListener('change', updateCompare);
+    if (rightSel) rightSel.addEventListener('change', updateCompare);
+
+    if (swapBtn && leftSel && rightSel) {
+        swapBtn.addEventListener('click', () => {
+            const temp = leftSel.value;
+            leftSel.value = rightSel.value;
+            rightSel.value = temp;
+            updateCompare();
+        });
+    }
 }
 
-// MODAL ZOOM & PAN CONTROLLER
+function activateCompareWith(key) {
+    const rightSel = document.getElementById('compare-select-right');
+    if (rightSel) {
+        rightSel.value = key;
+        rightSel.dispatchEvent(new Event('change'));
+    }
+    const mapNav = document.querySelector('.nav-item[data-target="view-map-layers"]');
+    if (mapNav) mapNav.click();
+}
+
+function checkApiConnection(showAlert = false) {
+    const statusText = document.getElementById('api-status-text');
+    const statusDot = document.getElementById('api-status-dot');
+    const miniDot = document.getElementById('status-dot-mini');
+    const miniText = document.getElementById('status-text-mini');
+
+    safeFetchJson(getApiUrl('/api/health'))
+        .then(data => {
+            if (data && data.success) {
+                if (statusText) statusText.textContent = "API Server (Online)";
+                if (statusDot) statusDot.className = "status-dot online";
+                if (miniDot) miniDot.className = "status-dot online";
+                if (miniText) miniText.textContent = "Depth Engine Connected";
+                if (showAlert) alert(`API Connection Successful!\nServer: ${getApiBaseUrl() || 'Local Origin'}\nStatus: Online`);
+            } else {
+                throw new Error("Invalid health check response");
+            }
+        })
+        .catch(err => {
+            if (statusText) statusText.textContent = "API Server (Disconnected)";
+            if (statusDot) statusDot.className = "status-dot offline";
+            if (miniDot) miniDot.className = "status-dot offline";
+            if (miniText) miniText.textContent = "Engine Disconnected";
+            if (showAlert) alert(`API Connection Failed:\n${err.message}`);
+        });
+}
+
+function initApiConfigDialog() {
+    const btn = document.getElementById('header-btn-api-config');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        const current = getApiBaseUrl() || "(Relative / Default Vercel Domain)";
+        const newUrl = prompt(
+            `Configure Production Backend API URL:\n\nCurrent active API base: ${current}\n\nEnter backend URL (e.g. http://localhost:5000 or https://your-backend-domain.com):`,
+            localStorage.getItem('DEPTHWIZARD_API_URL') || ""
+        );
+        if (newUrl !== null) {
+            if (newUrl.trim() === "") {
+                localStorage.removeItem('DEPTHWIZARD_API_URL');
+                alert("Cleared custom API URL override.");
+            } else {
+                localStorage.setItem('DEPTHWIZARD_API_URL', newUrl.trim());
+                alert(`Saved API Server URL: ${newUrl.trim()}`);
+            }
+            checkApiConnection();
+        }
+    });
+}
+
+function downloadJsonFile(dataObj, filename) {
+    const code = JSON.stringify(dataObj || {}, null, 2);
+    const blob = new Blob([code], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// MODAL ZOOM & PAN
 function initModalPanZoom() {
-    if (DOM.modalCloseBtn) {
-        DOM.modalCloseBtn.addEventListener('click', closeModal);
-    }
-    if (DOM.imageModal) {
-        DOM.imageModal.addEventListener('click', (e) => {
-            if (e.target === DOM.imageModal) closeModal();
+    const closeBtn = document.getElementById('modal-close-btn');
+    const resetBtn = document.getElementById('btn-modal-zoom-reset');
+    const modal = document.getElementById('image-modal');
+    const viewport = document.getElementById('modal-pan-container');
+    const displayImg = document.getElementById('modal-image-display');
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
         });
     }
+    if (resetBtn) resetBtn.addEventListener('click', resetZoom);
 
-    if (DOM.btnModalZoomIn) {
-        DOM.btnModalZoomIn.addEventListener('click', () => adjustZoom(0.25));
+    if (viewport && displayImg) {
+        viewport.addEventListener('mousedown', (e) => {
+            isPanning = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            viewport.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            applyTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+            if (viewport) viewport.style.cursor = 'grab';
+        });
+
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.15 : -0.15;
+            modalZoom = Math.max(0.5, Math.min(modalZoom + delta, 5.0));
+            applyTransform();
+        });
     }
-    if (DOM.btnModalZoomOut) {
-        DOM.btnModalZoomOut.addEventListener('click', () => adjustZoom(-0.25));
-    }
-    if (DOM.btnModalZoomReset) {
-        DOM.btnModalZoomReset.addEventListener('click', resetZoom);
-    }
-
-    // Drag to pan
-    DOM.modalPanContainer.addEventListener('mousedown', (e) => {
-        isPanning = true;
-        startX = e.clientX - panX;
-        startY = e.clientY - panY;
-        DOM.modalPanContainer.style.cursor = 'grabbing';
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isPanning) return;
-        panX = e.clientX - startX;
-        panY = e.clientY - startY;
-        applyTransform();
-    });
-
-    window.addEventListener('mouseup', () => {
-        isPanning = false;
-        DOM.modalPanContainer.style.cursor = 'grab';
-    });
-
-    // Mouse wheel zoom
-    DOM.modalPanContainer.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.15 : -0.15;
-        adjustZoom(delta);
-    });
-}
-
-function adjustZoom(amount) {
-    modalZoom = Math.max(0.5, Math.min(modalZoom + amount, 5.0));
-    applyTransform();
 }
 
 function resetZoom() {
@@ -837,23 +780,28 @@ function resetZoom() {
 }
 
 function applyTransform() {
-    DOM.modalImageDisplay.style.transform = `translate(${panX}px, ${panY}px) scale(${modalZoom})`;
+    const displayImg = document.getElementById('modal-image-display');
+    if (displayImg) {
+        displayImg.style.transform = `translate(${panX}px, ${panY}px) scale(${modalZoom})`;
+    }
 }
 
-function openModal(key, customSubText = null) {
-    if (!currentMapUrls[key]) return;
+function openModal(key) {
+    const modal = document.getElementById('image-modal');
+    const title = document.getElementById('modal-title');
+    const displayImg = document.getElementById('modal-image-display');
 
-    DOM.modalTitle.textContent = MAP_TITLES[key] || key;
-    DOM.modalSubInfo.textContent = customSubText || "High-Resolution 2D Inspection View • Use wheel to zoom, drag to pan";
-    DOM.modalImageDisplay.src = currentMapUrls[key];
-    DOM.modalDownloadLink.href = currentMapUrls[key];
-    DOM.modalDownloadLink.download = `${key}.png`;
+    if (!currentMapUrls[key] || !modal) return;
+
+    if (title) title.textContent = MAP_TITLES[key] || key;
+    if (displayImg) displayImg.src = currentMapUrls[key];
 
     resetZoom();
-    DOM.imageModal.classList.remove('hidden');
+    modal.classList.remove('hidden');
 }
 
 function closeModal() {
-    DOM.imageModal.classList.add('hidden');
+    const modal = document.getElementById('image-modal');
+    if (modal) modal.classList.add('hidden');
     resetZoom();
 }
