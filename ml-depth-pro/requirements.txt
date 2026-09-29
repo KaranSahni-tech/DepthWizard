@@ -1,8 +1,11 @@
-flask
-flask-cors
+flask>=2.0.0
+flask-cors>=3.0.0
 torch
 torchvision
 timm
 numpy<2
 pillow
 matplotlib
+opencv-python-headless
+tifffile
+gunicorn

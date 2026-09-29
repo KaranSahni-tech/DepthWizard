@@ -608,6 +608,13 @@ function renderResults(data) {
     currentStatistics = data.statistics || {};
     currentMapUrls = data.map_urls || {};
 
+    // Transform relative asset URLs using getApiUrl
+    Object.keys(currentMapUrls).forEach(k => {
+        if (currentMapUrls[k]) {
+            currentMapUrls[k] = getApiUrl(currentMapUrls[k]);
+        }
+    });
+
     const meta = currentMetadata;
     const imgInfo = meta.image || {};
     const depthInfo = meta.depth || {};
