@@ -1,2 +1,123 @@
+# ==========================================
+# DepthWizard Repository .gitignore
+# ==========================================
 
+# ------------------------------------------
+# 1. Output & Generated Directories
+# ------------------------------------------
+output/
+outputs/
+generated/
+data/uploads/
+ml-depth-pro/output/
+ml-depth-pro/outputs/
+ml-depth-pro/generated/
+ml-depth-pro/data/uploads/
+
+# ------------------------------------------
+# 2. Pretrained AI Models & Weights
+# ------------------------------------------
+checkpoints/
+models/
+ml-depth-pro/checkpoints/
+ml-depth-pro/models/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# ------------------------------------------
+# 3. 3D Models & Spatial Point Cloud Files
+# ------------------------------------------
+*.obj
+*.mtl
+*.glb
+*.gltf
+*.stl
+*.ply
+*.las
+*.laz
+
+# ------------------------------------------
+# 4. Processed Data Arrays & Geospatial Tiffs
+# ------------------------------------------
+*.npy
+*.npz
+*.tif
+*.tiff
+
+# ------------------------------------------
+# 5. Generated Image Outputs & Temporary Files
+# ------------------------------------------
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.bin
+*.tmp
 pip_temp/
+
+# ------------------------------------------
+# 6. Python & Virtual Environments
+# ------------------------------------------
+.venv/
+env/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# ------------------------------------------
+# 7. Node.js & Web Build Artifacts
+# ------------------------------------------
+node_modules/
+dist-ssr/
+*.local
+
+# ------------------------------------------
+# 8. Logs
+# ------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------
+# 9. Editor & System Metadata
+# ------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ------------------------------------------
+# 10. Exceptions: Source Assets & Sample Images
+# ------------------------------------------
+!data/depth-pro-teaser.jpg
+!data/example.jpg
+!ml-depth-pro/data/depth-pro-teaser.jpg
+!ml-depth-pro/data/example.jpg
+!point-cloud-viewer/public/*.jpg
+!point-cloud-viewer/public/*.png
+!point-cloud-viewer/public/*.svg
+!point-cloud-viewer/src/assets/*.png
+!point-cloud-viewer/src/assets/*.svg
+!ml-depth-pro/point-cloud-viewer/public/*.jpg
+!ml-depth-pro/point-cloud-viewer/public/*.png
+!ml-depth-pro/point-cloud-viewer/public/*.svg
+!ml-depth-pro/point-cloud-viewer/src/assets/*.png
+!ml-depth-pro/point-cloud-viewer/src/assets/*.svg

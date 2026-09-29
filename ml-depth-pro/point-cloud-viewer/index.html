@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Reconstruction — Monocular Depth-Derived Surface</title>
+  </head>
+  <body>
+    <!-- TOP BAR -->
+    <header id="top-bar">
+      <div class="top-bar-left">
+        <div class="top-app-title">3D Reconstruction</div>
+        <div class="top-app-sub">Monocular Depth-Derived 3D Surface</div>
+      </div>
+      
+      <div class="top-bar-center">
+        <div class="top-info-block">
+          <span class="top-info-label">PROGRESS:</span>
+          <span id="top-progress-status" class="top-info-value">Ready</span>
+          <span id="top-progress-pct" class="top-status-badge">100%</span>
+        </div>
+        <div class="top-info-sep"></div>
+        <div class="top-info-block">
+          <span class="top-info-label">IMAGE:</span>
+          <span id="top-img-name" class="top-info-value">image.jpg</span>
+          <span id="top-img-res" class="top-info-tag">0x0</span>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <div class="server-status-badge">
+          <span class="status-dot online"></span>
+          <span id="server-status-text">Server Connected</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWPORT & THREE.JS CANVAS -->
+    <main id="main-viewport">
+      <canvas id="webgl-canvas"></canvas>
+      
+      <!-- LOADING & PROGRESS OVERLAY (8-STEP PIPELINE) -->
+      <div id="loading" class="hidden">
+        <div class="spinner" id="loading-spinner"></div>
+        <div id="loading-step-badge" class="loading-step-badge">STEP 1/8</div>
+        <div id="loading-text">Loading image...</div>
+        <div class="loading-progress-container">
+          <div id="loading-progress-bar" class="loading-progress-bar" style="width: 0%;"></div>
+        </div>
+        <div id="loading-subtext">0%</div>
+        <div id="loading-error" class="loading-error-box hidden">
+          <div class="loading-error-title">Reconstruction Pipeline Error</div>
+          <div id="loading-error-text">An error occurred during inference.</div>
+          <button id="loading-retry-btn" class="loading-retry-btn">Try Another Image</button>
+        </div>
+      </div>
+
+      <!-- UPLOAD MODAL OVERLAY -->
+      <div id="upload-overlay">
+        <div class="upload-modal">
+          <h2>Apple Depth Pro 3D Reconstruction</h2>
+          <p>Upload a monocular aerial image to generate an interactive 3D surface model.</p>
+          <div class="upload-area" id="upload-area">
+            <span>Drag & Drop image or Click to Browse</span>
+            <input type="file" id="file-input" accept="image/png, image/jpeg, image/jpg" class="hidden" />
+          </div>
+        </div>
+      </div>
+
+      <!-- BUILDING SELECTION INSPECTOR CARD -->
+      <div id="building-info-card" class="legend-card hidden" style="top: 80px; right: 380px; width: 280px; position: absolute; z-index: 10;">
+        <div class="legend-header">
+          <span class="legend-badge" style="background: #3b82f6; color: white;">SELECTED STRUCTURE</span>
+          <span id="bldg-card-title" class="legend-title">Building_001</span>
+        </div>
+        <div class="legend-desc" id="bldg-card-subtitle">Extruded 3D Building Object</div>
+        <div class="info-rows-list" style="margin-top: 8px;">
+          <div class="info-row"><span class="info-label">Building ID:</span><span class="info-val" id="bldg-val-id">Building_001</span></div>
+          <div class="info-row"><span class="info-label">Height (est):</span><span class="info-val" id="bldg-val-height" style="color: #38bdf8; font-weight: bold;">0.00m</span></div>
+          <div class="info-row"><span class="info-label">Dimensions (W×H×D):</span><span class="info-val" id="bldg-val-dims">0.0m × 0.0m × 0.0m</span></div>
+          <div class="info-row"><span class="info-label">3D Center (X,Y,Z):</span><span class="info-val" id="bldg-val-center">0.0, 0.0, 0.0</span></div>
+          <div class="info-row"><span class="info-label">Footprint Area:</span><span class="info-val" id="bldg-val-area">0 px</span></div>
+          <div class="info-row"><span class="info-label">Confidence:</span><span class="info-val" id="bldg-val-conf">100%</span></div>
+        </div>
+        <button id="bldg-card-close" style="margin-top: 10px; width: 100%; padding: 4px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 4px; cursor: pointer;">Close Details</button>
+      </div>
+
+      <!-- RECONSTRUCTION DEBUG LEGEND CARD -->
+      <div id="debug-legend" class="legend-card hidden">
+        <div class="legend-header">
+          <span class="legend-badge">DEBUG MODE</span>
+          <span id="legend-title" class="legend-title">RGB Texture</span>
+        </div>
+        <div id="legend-desc" class="legend-desc">Original photographic RGB texture</div>
+        <div id="legend-content" class="legend-content"></div>
+      </div>
+
+      <!-- MEASUREMENT TOOL UI -->
+      <div id="measure-ui" class="hidden">
+        <h3>Measurement Tool</h3>
+        <p class="measure-inst">Click on the model to select two points</p>
+        <div class="stat-row">
+          <span class="stat-label">Point 1:</span>
+          <span class="stat-value" id="measure-p1">None</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Point 2:</span>
+          <span class="stat-value" id="measure-p2">None</span>
+        </div>
+        <hr/>
+        <div class="stat-row">
+          <span class="stat-label">Δ Height (est):</span>
+          <span class="stat-value" id="measure-dh">0.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Distance (est):</span>
+          <span class="stat-value" id="measure-dist">0.00</span>
+        </div>
+        <button id="measure-clear">Clear</button>
+      </div>
+
+      <!-- BOTTOM THUMBNAIL BAR -->
+      <div id="bottom-thumbnail-bar" class="hidden">
+        <div class="thumb-group">
+          <div class="thumb-group-label">DERIVED 3D RECONSTRUCTION</div>
+          <div class="thumb-items">
+            <div class="thumb-card active" id="thumb-3d">
+              <div class="thumb-placeholder">3D VIEW</div>
+              <span class="thumb-title">3D View</span>
+            </div>
+            <div class="thumb-card" id="thumb-heatmap">
+              <img id="thumb-img-heatmap" src="" alt="Heatmap"/>
+              <span class="thumb-title">Heatmap</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="thumb-sep"></div>
+
+        <div class="thumb-group">
+          <div class="thumb-group-label">SOURCE DATA</div>
+          <div class="thumb-items">
+            <div class="thumb-card" id="thumb-depth">
+              <img id="thumb-img-depth" src="" alt="Depth"/>
+              <span class="thumb-title">Depth</span>
+            </div>
+            <div class="thumb-card" id="thumb-rgb">
+              <img id="thumb-img-rgb" src="" alt="Original RGB"/>
+              <span class="thumb-title">Original Image</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL CONTROLS & METADATA -->
+    <aside id="right-panel" class="hidden">
+      <!-- VISUALIZATION MODE -->
+      <section class="panel-section">
+        <div class="section-title">Visualization Mode</div>
+        <div class="mode-pills-grid">
+          <button class="mode-pill active" data-mode="RGB Texture">RGB Texture</button>
+          <button class="mode-pill" data-mode="Building Footprints">Footprints</button>
+          <button class="mode-pill" data-mode="Building Height">Bldg Height</button>
+          <button class="mode-pill" data-mode="Heatmap">Heatmap</button>
+          <button class="mode-pill" data-mode="Cleaned Depth">Depth</button>
+          <button class="mode-pill" data-mode="Wireframe">Wireframe</button>
+          <button class="mode-pill" data-mode="Solid Mesh">Solid</button>
+          <button class="mode-pill" data-mode="Segmentation">Segmentation</button>
+        </div>
+        
+        <div class="debug-select-wrapper">
+          <label class="panel-label">Extended Debugger (16 Modes):</label>
+          <select id="debug-mode-select" class="panel-select">
+            <option value="RGB Texture">1. RGB Texture</option>
+            <option value="Building Footprints">2. Building Footprints</option>
+            <option value="Building Height">3. Building Height</option>
+            <option value="Relative Depth">4. Relative Depth</option>
+            <option value="Cleaned Depth">5. Cleaned Depth</option>
+            <option value="Ground Surface">6. Ground Surface</option>
+            <option value="Heatmap">7. Heatmap</option>
+            <option value="Solid Mesh">8. Solid Mesh</option>
+            <option value="Wireframe">9. Wireframe</option>
+            <option value="Boundary Map">10. Boundary Map</option>
+            <option value="Segmentation">11. Segmentation</option>
+            <option value="Confidence">12. Confidence</option>
+            <option value="Validity Mask">13. Validity Mask</option>
+            <option value="Ground Only">14. Ground Only</option>
+            <option value="Buildings Only">15. Buildings Only</option>
+            <option value="Normals">16. Normals Debug</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- SCENE LAYER TOGGLES -->
+      <section class="panel-section">
+        <div class="section-title">Scene Layer Toggles</div>
+        <div class="btn-group-grid" style="grid-template-columns: 1fr 1fr;">
+          <button class="action-btn active" id="btn-toggle-ground" style="background: #10b981;">Ground: ON</button>
+          <button class="action-btn active" id="btn-toggle-buildings" style="background: #3b82f6;">Buildings: ON</button>
+        </div>
+      </section>
+
+      <!-- VIEW CONTROLS -->
+      <section class="panel-section">
+        <div class="section-title">View Controls</div>
+        <div class="btn-group-grid">
+          <button class="action-btn" id="btn-reset">Reset View</button>
+          <button class="action-btn" id="btn-fit">Fit Model</button>
+          <button class="action-btn" id="btn-top">Top View</button>
+          <button class="action-btn" id="btn-iso">Isometric</button>
+          <button class="action-btn" id="btn-persp">Perspective</button>
+        </div>
+      </section>
+
+      <!-- HEIGHT EXAGGERATION -->
+      <section class="panel-section">
+        <div class="section-title-row">
+          <span>Height Exaggeration</span>
+          <span id="height-val-display" class="highlight-val">1.0×</span>
+        </div>
+        <input type="range" id="height-slider" min="0.5" max="3.0" step="0.1" value="1.0" class="panel-slider" />
+        <div class="slider-ticks">
+          <span>0.5×</span>
+          <span>1.0×</span>
+          <span>1.5×</span>
+          <span>2.0×</span>
+          <span>3.0×</span>
+        </div>
+      </section>
+
+      <!-- MODEL INFORMATION (STRUCTURED 3D CITY) -->
+      <section class="panel-section">
+        <div class="section-header-badge">
+          <span class="section-badge derived">STRUCTURED 3D CITY</span>
+          <span id="quality-status-badge" class="quality-badge badge-good">GOOD ✓</span>
+        </div>
+
+        <div class="info-rows-list">
+          <div class="info-row"><span class="info-label">Buildings Extruded:</span><span class="info-val" id="info-bldgs-count" style="color: #38bdf8; font-weight: bold;">0</span></div>
+          <div class="info-row"><span class="info-label">Ground Size (m):</span><span class="info-val" id="info-ground-size">0.0m × 0.0m</span></div>
+          <div class="info-row"><span class="info-label">Resolution:</span><span class="info-val" id="info-res">0x0</span></div>
+          <div class="info-row"><span class="info-label">Source Image:</span><span class="info-val" id="info-src-img">image.jpg</span></div>
+          <div class="info-row"><span class="info-label">Depth Source:</span><span class="info-val">Apple Depth Pro</span></div>
+          <div class="info-row"><span class="info-label">Building Height Range:</span><span class="info-val" id="info-rel-height">0.00m - 0.00m</span></div>
+          <div class="info-row"><span class="info-label">Valid Depth %:</span><span class="info-val" id="info-valid-pct">100.0%</span></div>
+        </div>
+      </section>
+    </aside>
+
+      <!-- METADATA & GEOSPATIAL CALIBRATION -->
+      <section class="panel-section">
+        <div class="section-header-badge">
+          <span class="section-badge metadata">METADATA & GEOSPATIAL STATUS</span>
+        </div>
+
+        <div class="info-rows-list">
+          <div class="info-row"><span class="info-label">Metric Scale:</span><span class="info-val tag-off">Not calibrated</span></div>
+          <div class="info-row"><span class="info-label">Absolute Elevation:</span><span class="info-val tag-off">Unavailable</span></div>
+          <div class="info-row"><span class="info-label">Georeferenced:</span><span class="info-val tag-off">No</span></div>
+          <div class="info-row"><span class="info-label">CRS:</span><span class="info-val tag-off">None</span></div>
+        </div>
+
+        <div class="geospatial-disclaimer-card">
+          Monocular Depth-Derived Relative 3D Reconstruction. Not an absolute elevation model unless geospatial calibration is available.
+        </div>
+      </section>
+    </aside>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
