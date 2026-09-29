@@ -66,6 +66,14 @@ def start_reconstruction():
         if 'image' in request.files and request.files['image'].filename != '':
             file = request.files['image']
             raw_filename = os.path.basename(file.filename)
+            ext = os.path.splitext(raw_filename)[1].lower()
+            allowed_exts = ['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.webp']
+            if ext not in allowed_exts:
+                return jsonify({
+                    "success": False,
+                    "error": f"Unsupported file extension '{ext}'. Allowed image formats: {', '.join(allowed_exts)}"
+                }), 400
+
             # Sanitize filename: replace spaces and weird characters
             safe_name = re.sub(r'[^a-zA-Z0-9_\.-]', '_', raw_filename)
             base_name = os.path.splitext(safe_name)[0]
@@ -399,17 +407,27 @@ def serve_output_file(filename):
     mimetype = mimetypes_custom.get(ext)
     return send_from_directory(OUTPUT_FOLDER, filename, mimetype=mimetype)
 
+@app.after_request
+def after_request_callback(response):
+    if request.path.startswith('/api/'):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        if 'application/json' not in response.headers.get('Content-Type', ''):
+            response.headers['Content-Type'] = 'application/json'
+    return response
+
 @app.errorhandler(404)
 def not_found_handler(e):
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api/') or 'application/json' in request.headers.get('Accept', ''):
         return jsonify({"success": False, "error": f"API endpoint not found: {request.path}"}), 404
-    return "Not Found", 404
+    return jsonify({"success": False, "error": f"Resource not found: {request.path}"}), 404
 
 @app.errorhandler(500)
 def internal_error_handler(e):
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api/') or 'application/json' in request.headers.get('Accept', ''):
         return jsonify({"success": False, "error": f"Internal server error: {str(e)}"}), 500
-    return "Internal Server Error", 500
+    return jsonify({"success": False, "error": f"Internal server error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     print("[SERVER] Starting Flask on 0.0.0.0:5000...")

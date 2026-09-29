@@ -1,7 +1,67 @@
 // --- PS 175 REMOTE SENSING & 2D MULTI-LAYER ELEVATION CONTROLLER ---
 
+const API_BASE_URL = (
+    (typeof window !== 'undefined' && (window.VITE_API_URL || window.VITE_BACKEND_URL)) || ''
+).replace(/\/+$/, '');
+
+function getApiUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (!path.startsWith('/')) path = '/' + path;
+    return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+}
+
+async function safeFetchJson(url, options = {}) {
+    let res;
+    try {
+        res = await fetch(url, options);
+    } catch (networkErr) {
+        console.error('[API Network Error]', networkErr);
+        throw new Error(`Network connection error: ${networkErr.message || 'Unable to connect to backend server.'}`);
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    const rawText = await res.text();
+
+    if (!rawText || !rawText.trim()) {
+        if (!res.ok) {
+            throw new Error(`Server returned HTTP ${res.status} ${res.statusText || 'Error'} with empty response.`);
+        }
+        return { success: true };
+    }
+
+    let parsed = null;
+    const isJson = contentType.includes('application/json') || rawText.trim().startsWith('{') || rawText.trim().startsWith('[');
+
+    if (isJson) {
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (parseErr) {
+            console.error('[API JSON Error] Failed to parse JSON response:', parseErr, rawText);
+            throw new Error(`Failed to parse server response as JSON (HTTP ${res.status}). Response preview: "${rawText.slice(0, 150)}..."`);
+        }
+    } else {
+        console.error(`[API Error] Received non-JSON content-type (${contentType}, HTTP ${res.status}):`, rawText);
+        if (rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+            throw new Error(`Server returned HTML instead of JSON (HTTP ${res.status}). Please verify that the backend API URL is reachable and configured properly.`);
+        }
+        throw new Error(`Server returned HTTP ${res.status}: ${rawText.slice(0, 200)}`);
+    }
+
+    if (!res.ok) {
+        const errMsg = (parsed && (parsed.error || parsed.message)) ? (parsed.error || parsed.message) : `Request failed with status HTTP ${res.status}`;
+        const err = new Error(errMsg);
+        err.status = res.status;
+        err.data = parsed;
+        throw err;
+    }
+
+    return parsed;
+}
+
 let activeSessionId = null;
 let pollInterval = null;
+let isAnalyzing = false;
 let currentMetadata = null;
 let currentBuildings = null;
 let currentStatistics = null;
@@ -151,8 +211,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initModalPanZoom();
 
     // Check if initial session exists (e.g. image3_output or latest)
-    fetch('/api/results?session_id=image3_output')
-        .then(res => res.json())
+    safeFetchJson(getApiUrl('/api/results?session_id=image3_output'))
         .then(data => {
             if (data.success) {
                 renderResults(data);
@@ -210,7 +269,7 @@ function initEvents() {
     if (DOM.btnDownloadZip) {
         DOM.btnDownloadZip.addEventListener('click', () => {
             if (activeSessionId) {
-                window.location.href = `/api/download_all?session_id=${activeSessionId}`;
+                window.location.href = getApiUrl(`/api/download_all?session_id=${activeSessionId}`);
             }
         });
     }
@@ -375,6 +434,12 @@ function handleSampleSelect(sampleName) {
 }
 
 function startPipeline(formData) {
+    if (isAnalyzing) {
+        console.warn('[Pipeline] Analysis already in progress. Ignoring duplicate request.');
+        return;
+    }
+    isAnalyzing = true;
+
     // Show processing section
     DOM.sectionProcessing.classList.remove('hidden');
     DOM.sectionDashboard.classList.add('hidden');
@@ -382,11 +447,10 @@ function startPipeline(formData) {
 
     updateProgressBar(5, "Submitting payload...");
 
-    fetch('/api/analyze', {
+    safeFetchJson(getApiUrl('/api/analyze'), {
         method: 'POST',
         body: formData
     })
-    .then(res => res.json())
     .then(data => {
         if (!data.success) {
             throw new Error(data.error || "Failed to start remote-sensing pipeline.");
@@ -395,8 +459,11 @@ function startPipeline(formData) {
         startPolling(activeSessionId);
     })
     .catch(err => {
+        console.error('[Analysis Startup Error]', err);
+        isAnalyzing = false;
         alert(`Error starting analysis: ${err.message}`);
         DOM.sectionProcessing.classList.add('hidden');
+        DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
     });
 }
 
@@ -404,12 +471,15 @@ function startPolling(sessionId) {
     if (pollInterval) clearInterval(pollInterval);
 
     pollInterval = setInterval(() => {
-        fetch(`/api/progress?session_id=${sessionId}&t=${Date.now()}`)
-            .then(res => res.json())
+        safeFetchJson(getApiUrl(`/api/progress?session_id=${sessionId}&t=${Date.now()}`))
             .then(progress => {
                 if (!progress.success && progress.status === 'error') {
                     clearInterval(pollInterval);
+                    isAnalyzing = false;
+                    console.error('[Pipeline Execution Error]', progress);
                     alert(`Pipeline error: ${progress.error || 'Unknown error'}`);
+                    DOM.sectionProcessing.classList.add('hidden');
+                    DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
                     return;
                 }
 
@@ -422,7 +492,9 @@ function startPolling(sessionId) {
                     setTimeout(() => fetchResults(sessionId), 700);
                 }
             })
-            .catch(() => {});
+            .catch(err => {
+                console.warn('[Polling Error]', err);
+            });
     }, 600);
 }
 
@@ -446,9 +518,9 @@ function highlightStageStep(stepIdx) {
 }
 
 function fetchResults(sessionId) {
-    fetch(`/api/results?session_id=${sessionId}&t=${Date.now()}`)
-        .then(res => res.json())
+    safeFetchJson(getApiUrl(`/api/results?session_id=${sessionId}&t=${Date.now()}`))
         .then(data => {
+            isAnalyzing = false;
             if (!data.success) {
                 throw new Error(data.error || "Failed loading analysis results.");
             }
@@ -458,7 +530,11 @@ function fetchResults(sessionId) {
             DOM.sectionDashboard.scrollIntoView({ behavior: 'smooth' });
         })
         .catch(err => {
+            isAnalyzing = false;
+            console.error('[Fetch Results Error]', err);
             alert(`Error retrieving results: ${err.message}`);
+            DOM.sectionProcessing.classList.add('hidden');
+            DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
         });
 }
 
