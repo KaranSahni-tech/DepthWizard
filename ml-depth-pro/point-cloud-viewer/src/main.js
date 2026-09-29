@@ -1,110 +1,4 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import GUI from 'lil-gui';
-import { loadDepthData, loadImageToCanvas } from './depthLoader.js';
-import { setupCameraAndControls, resetCamera, fitModel, setTopView, setSideView, setPerspectiveView, setAerialView } from './camera.js';
-import { createSceneHelpers } from './sceneHelpers.js';
-import './style.css';
-
-let scene, camera, controls, renderer;
-let currentCitySceneGroup = null;
-let groundMeshObject = null;
-let buildingMeshObjects = [];
-let selectedBuildingMesh = null;
-let buildingsMetadataMap = new Map();
-
-let depthData = null;
-let currentGenId = "image3_output";
-let raycaster, mouse;
-
-const config = {
-    mode: 'RGB Texture',
-    zScale: 1.0,
-    showGround: true,
-    showBuildings: true,
-    fitModel: () => fitModel(camera, controls, currentCitySceneGroup),
-    resetCamera: () => resetCamera(camera, controls, currentCitySceneGroup),
-    topView: () => setTopView(camera, controls, currentCitySceneGroup),
-    sideView: () => setSideView(camera, controls, currentCitySceneGroup),
-    perspectiveView: () => setPerspectiveView(camera, controls, currentCitySceneGroup),
-    aerialView: () => setAerialView(camera, controls, currentCitySceneGroup)
-};
-
-const RECONSTRUCTION_DEBUG_MODES = [
-    'RGB Texture',
-    'Building Footprints',
-    'Building Height',
-    'Relative Depth',
-    'Cleaned Depth',
-    'Ground Surface',
-    'Heatmap',
-    'Solid Mesh',
-    'Wireframe',
-    'Boundary Map',
-    'Segmentation',
-    'Confidence',
-    'Validity Mask',
-    'Ground Only',
-    'Buildings Only',
-    'Normals'
-];
-
-async function init() {
-    console.log("[1] Application initializing (Structured 3D City Architecture)...");
-    const canvas = document.querySelector('#webgl-canvas');
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
-    renderer.setClearColor(0x0d0e12);
-
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0d0e12);
-
-    const camSetup = setupCameraAndControls(canvas);
-    camera = camSetup.camera;
-    controls = camSetup.controls;
-
-    // Professional Lighting Setup
-    const hemiLight = new THREE.HemisphereLight(0xf0f4f8, 0x22242a, 0.85);
-    hemiLight.position.set(0, 50, 0);
-    scene.add(hemiLight);
-
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.4);
-    sunLight.position.set(-20, 40, 30);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
-    scene.add(sunLight);
-
-    const fillLight = new THREE.DirectionalLight(0xa5c0e0, 0.4);
-    fillLight.position.set(20, 20, -20);
-    scene.add(fillLight);
-
-    // Raycaster for Building Selection
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
-    window.addEventListener('pointerdown', handleBuildingClick);
-    window.addEventListener('resize', onWindowResize);
-
-    setupRightPanelUI();
-    setupUpload();
-    checkBackendHealth();
-    setInterval(checkBackendHealth, 15000);
-
-    // Load initial 3D City Model if available
-    loadStructuredCityModel("image3_output");
-
-    // Render loop
-    renderer.setAnimationLoop(() => {
-        controls.update();
-        renderer.render(scene, camera);
-    });
-}
+// --- PS 175 REMOTE SENSING & 2D MULTI-LAYER ELEVATION CONTROLLER ---
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
 
@@ -115,591 +9,721 @@ export function getApiUrl(path) {
     return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
 }
 
-async function safeFetchJson(url, options = {}) {
-    let response;
-    const finalUrl = getApiUrl(url);
-    try {
-        response = await fetch(finalUrl, options);
-    } catch (networkErr) {
-        throw new Error(`Cannot connect to reconstruction backend (${finalUrl}): ${networkErr.message}. Make sure Python backend is running.`);
-    }
+let activeSessionId = null;
+let pollInterval = null;
+let currentMetadata = null;
+let currentBuildings = null;
+let currentStatistics = null;
+let currentMapUrls = {};
+let activeJsonTab = "metadata";
 
-    const rawText = await response.text();
+// Modal zoom state
+let modalZoom = 1.0;
+let isPanning = false;
+let startX = 0, startY = 0;
+let panX = 0, panY = 0;
 
-    if (!response.ok) {
-        let errMessage = `HTTP ${response.status} ${response.statusText}`;
-        try {
-            const errJson = JSON.parse(rawText);
-            if (errJson.error || errJson.message) {
-                errMessage = errJson.error || errJson.message;
-            }
-        } catch (_) {
-            if (rawText.trim()) {
-                errMessage += `: ${rawText.slice(0, 300)}`;
-            }
-        }
-        throw new Error(errMessage);
-    }
+const MAP_TITLES = {
+    rgb: "MAP 1 — Original RGB",
+    depth: "MAP 2 — Depth Map",
+    rdsm: "MAP 3 — Relative DSM / rDSM",
+    elevation_heatmap: "MAP 4 — Elevation Heatmap",
+    building_detection: "MAP 5 — Building Detection Map",
+    building_height: "MAP 6 — Building Height Map",
+    edges: "MAP 7 — Edge / Boundary Map",
+    building_boundaries: "MAP 8 — Building Footprint Map",
+    slope: "MAP 9 — Slope Map",
+    terrain_relief: "MAP 10 — Terrain / Relief Map",
+    semantic: "MAP 11 — Semantic Classification Map",
+    error: "MAP 12 — Model Confidence / Uncertainty Map"
+};
 
-    if (!rawText.trim()) {
-        throw new Error(`Backend returned an empty response (HTTP ${response.status}) from ${finalUrl}.`);
-    }
-
-    let data;
-    try {
-        data = JSON.parse(rawText);
-    } catch (parseErr) {
-        throw new Error(`Backend returned invalid JSON from ${finalUrl}: ${rawText.slice(0, 300)}`);
-    }
-
-    return data;
-}
-
-async function checkBackendHealth() {
-    const statusText = document.getElementById('server-status-text');
-    const statusDot = document.querySelector('.status-dot');
-    try {
-        const res = await fetch(getApiUrl('/api/health'));
-        if (res.ok) {
-            const raw = await res.text();
-            if (raw.trim()) {
-                const data = JSON.parse(raw);
-                if (statusText) statusText.innerText = data.cuda_available ? "Server Online (CUDA)" : "Server Online (CPU)";
-                if (statusDot) {
-                    statusDot.classList.remove('offline');
-                    statusDot.classList.add('online');
-                }
-                return true;
-            }
-        }
-    } catch (_) {}
-    if (statusText) statusText.innerText = "Backend Offline";
-    if (statusDot) {
-        statusDot.classList.remove('online');
-        statusDot.classList.add('offline');
-    }
-    return false;
-}
-
-async function loadStructuredCityModel(genId) {
-    currentGenId = genId;
-    console.log(`[3D_CITY] Loading structured 3D city for genId: ${genId}...`);
+// DOM References
+const DOM = {
+    // Top Bar & Buttons
+    headerBtnUpload: document.getElementById('header-btn-upload'),
+    btnBrowseFiles: document.getElementById('btn-browse-files'),
+    btnSampleSatellite: document.getElementById('btn-sample-satellite'),
+    btnSampleImage2: document.getElementById('btn-sample-image2'),
+    fileInputHidden: document.getElementById('file-input-hidden'),
+    dropzoneArea: document.getElementById('dropzone-area'),
     
-    const timestamp = new Date().getTime();
-    const glbUrl = getApiUrl(`/assets/${genId}/models/model.glb?t=${timestamp}`);
-    const buildingsJsonUrl = getApiUrl(`/assets/${genId}/buildings_3d.json?t=${timestamp}`);
+    // Sections
+    sectionUpload: document.getElementById('section-upload'),
+    sectionProcessing: document.getElementById('section-processing'),
+    sectionDashboard: document.getElementById('section-dashboard'),
     
-    // Load metadata JSON safely
-    try {
-        const bRes = await fetch(buildingsJsonUrl);
-        if (bRes.ok) {
-            const raw = await bRes.text();
-            if (raw.trim()) {
-                const bData = JSON.parse(raw);
-                buildingsMetadataMap.clear();
-                if (bData.buildings) {
-                    bData.buildings.forEach(b => {
-                        buildingsMetadataMap.set(b.name || `Building_${b.building_id}`, b);
-                        buildingsMetadataMap.set(`building_${b.building_id}`, b);
-                    });
-                }
-                if (document.getElementById('info-bldgs-count')) {
-                    document.getElementById('info-bldgs-count').innerText = bData.total_buildings_extruded || bData.buildings.length || 0;
-                }
-                if (document.getElementById('info-ground-size') && bData.ground_plane) {
-                    document.getElementById('info-ground-size').innerText = `${bData.ground_plane.width_m}m × ${bData.ground_plane.depth_m}m`;
-                }
+    // Input Specs Preview Card
+    inputPreviewImg: document.getElementById('input-preview-img'),
+    infoFilename: document.getElementById('info-filename'),
+    infoResolution: document.getElementById('info-resolution'),
+    infoFormat: document.getElementById('info-format'),
+    infoChannels: document.getElementById('info-channels'),
+    infoGeospatial: document.getElementById('info-geospatial'),
+    infoSize: document.getElementById('info-size'),
+
+    // Progress Monitor
+    progressBarFill: document.getElementById('progress-bar-fill'),
+    progressPercentText: document.getElementById('progress-percent-text'),
+    stageTitle: document.getElementById('stage-title'),
+    stageMessage: document.getElementById('stage-message'),
+    stageSteps: document.querySelectorAll('.stage-step'),
+
+    // Dashboard Header & Key Metrics
+    sessionIdDisplay: document.getElementById('session-id-display'),
+    sessionTimeDisplay: document.getElementById('session-time-display'),
+    btnDownloadZip: document.getElementById('btn-download-zip'),
+    statBuildingCount: document.getElementById('stat-building-count'),
+    statImageSize: document.getElementById('stat-image-size'),
+    statImageFormat: document.getElementById('stat-image-format'),
+    statDepthRange: document.getElementById('stat-depth-range'),
+    statElevationMax: document.getElementById('stat-elevation-max'),
+    statGeospatialStatus: document.getElementById('stat-geospatial-status'),
+    statGeospatialSub: document.getElementById('stat-geospatial-sub'),
+    statConfidence: document.getElementById('stat-confidence'),
+
+    // Tabs
+    dashTabs: document.querySelectorAll('.dash-tab'),
+    tabPanes: document.querySelectorAll('.tab-pane'),
+
+    // Compare Mode
+    compareSelectLeft: document.getElementById('compare-select-left'),
+    compareSelectRight: document.getElementById('compare-select-right'),
+    compareTitleLeft: document.getElementById('compare-title-left'),
+    compareTitleRight: document.getElementById('compare-title-right'),
+    compareImgLeft: document.getElementById('compare-img-left'),
+    compareImgRight: document.getElementById('compare-img-right'),
+    btnSwapCompare: document.getElementById('btn-swap-compare'),
+
+    // Analysis Data
+    adFilename: document.getElementById('ad-filename'),
+    adFormat: document.getElementById('ad-format'),
+    adDims: document.getElementById('ad-dims'),
+    adChannels: document.getElementById('ad-channels'),
+    adSize: document.getElementById('ad-size'),
+    adTime: document.getElementById('ad-time'),
+
+    // Geospatial Info
+    geoStatus: document.getElementById('geo-status'),
+    geoCrs: document.getElementById('geo-crs'),
+    geoEpsg: document.getElementById('geo-epsg'),
+    geoPixelSize: document.getElementById('geo-pixel-size'),
+    geoBounds: document.getElementById('geo-bounds'),
+    geoCoverage: document.getElementById('geo-coverage'),
+
+    // Elevation & Quality
+    adElevType: document.getElementById('ad-elev-type'),
+    adElevMin: document.getElementById('ad-elev-min'),
+    adElevMax: document.getElementById('ad-elev-max'),
+    adElevMean: document.getElementById('ad-elev-mean'),
+    adElevMedian: document.getElementById('ad-elev-median'),
+    adQConf: document.getElementById('ad-q-conf'),
+    adQMae: document.getElementById('ad-q-mae'),
+    adQRmse: document.getElementById('ad-q-rmse'),
+    adQCorr: document.getElementById('ad-q-corr'),
+    adQValid: document.getElementById('ad-q-valid'),
+    adQStatus: document.getElementById('ad-q-status'),
+
+    // Building Table & Summary
+    bsumCount: document.getElementById('bsum-count'),
+    bsumAvgH: document.getElementById('bsum-avg-h'),
+    bsumMaxH: document.getElementById('bsum-max-h'),
+    bsumMinH: document.getElementById('bsum-min-h'),
+    bsumArea: document.getElementById('bsum-area'),
+    bsumConf: document.getElementById('bsum-conf'),
+    buildingsTableBody: document.getElementById('buildings-table-body'),
+
+    // JSON Subtabs & Actions
+    jsonSubtabs: document.querySelectorAll('.btn-subtab'),
+    jsonCodeDisplay: document.getElementById('json-code-display'),
+    btnCopyJson: document.getElementById('btn-copy-json'),
+    btnDownloadJson: document.getElementById('btn-download-json'),
+
+    // Modal
+    imageModal: document.getElementById('image-modal'),
+    modalTitle: document.getElementById('modal-title'),
+    modalSubInfo: document.getElementById('modal-sub-info'),
+    modalImageDisplay: document.getElementById('modal-image-display'),
+    modalPanContainer: document.getElementById('modal-pan-container'),
+    modalDownloadLink: document.getElementById('modal-download-link'),
+    modalCloseBtn: document.getElementById('modal-close-btn'),
+    btnModalZoomIn: document.getElementById('btn-modal-zoom-in'),
+    btnModalZoomOut: document.getElementById('btn-modal-zoom-out'),
+    btnModalZoomReset: document.getElementById('btn-modal-zoom-reset')
+};
+
+// INITIALIZATION
+window.addEventListener('DOMContentLoaded', () => {
+    initEvents();
+    initTabs();
+    initCompareControls();
+    initModalPanZoom();
+
+    // Check if initial session exists (e.g. image3_output or latest)
+    fetch(getApiUrl('/api/results?session_id=image3_output'))
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderResults(data);
             }
-        }
-    } catch (e) {
-        console.warn("[3D_CITY] Metadata fetch note:", e);
+        })
+        .catch(() => {});
+});
+
+function initEvents() {
+    if (DOM.headerBtnUpload) {
+        DOM.headerBtnUpload.addEventListener('click', () => {
+            DOM.sectionUpload.scrollIntoView({ behavior: 'smooth' });
+        });
     }
 
-    // Load GLTF Model
-    const loader = new GLTFLoader();
-    loader.load(
-        glbUrl,
-        (gltf) => {
-            if (currentCitySceneGroup) {
-                scene.remove(currentCitySceneGroup);
+    if (DOM.btnBrowseFiles && DOM.fileInputHidden) {
+        DOM.btnBrowseFiles.addEventListener('click', () => DOM.fileInputHidden.click());
+        DOM.fileInputHidden.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
             }
+        });
+    }
 
-            currentCitySceneGroup = gltf.scene;
-            groundMeshObject = null;
-            buildingMeshObjects = [];
+    // Preset Sample Buttons
+    if (DOM.btnSampleSatellite) {
+        DOM.btnSampleSatellite.addEventListener('click', () => handleSampleSelect('satellite.jpg'));
+    }
+    if (DOM.btnSampleImage2) {
+        DOM.btnSampleImage2.addEventListener('click', () => handleSampleSelect('image2.jpg'));
+    }
 
-            let meshIdx = 0;
-            currentCitySceneGroup.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                    
-                    if (child.name === "GroundPlane" || meshIdx === 0) {
-                        groundMeshObject = child;
-                        child.name = "GroundPlane";
-                        if (child.material) {
-                            child.material.side = THREE.DoubleSide;
-                        }
-                    } else {
-                        if (!child.name || child.name.startsWith("Mesh")) {
-                            const bIdStr = String(buildingMeshObjects.length + 1).padStart(3, '0');
-                            child.name = `Building_${bIdStr}`;
-                        }
-                        buildingMeshObjects.push(child);
-                        
-                        // Store original material (which contains rooftop RGB UV texture)
-                        child.userData.originalMaterial = child.material;
-                    }
-                    meshIdx++;
-                }
+    // Drag and Drop
+    if (DOM.dropzoneArea) {
+        ['dragenter', 'dragover'].forEach(evt => {
+            DOM.dropzoneArea.addEventListener(evt, (e) => {
+                e.preventDefault();
+                DOM.dropzoneArea.classList.add('dragover');
             });
-
-            scene.add(currentCitySceneGroup);
-
-            // Fit camera perspective
-            const box = new THREE.Box3().setFromObject(currentCitySceneGroup);
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.z, 2.0);
-            camera.position.set(maxDim * 0.8, maxDim * 0.8, maxDim * 0.9);
-            controls.target.set(0, 0, 0);
-            controls.update();
-
-            // Unhide UI controls
-            document.getElementById('right-panel')?.classList.remove('hidden');
-            document.getElementById('bottom-thumbnail-bar')?.classList.remove('hidden');
-            
-            updateVisualization();
-        },
-        (progress) => {
-            console.log(`[3D_CITY] GLTF loading progress: ${Math.round((progress.loaded / (progress.total || 1)) * 100)}%`);
-        },
-        (err) => {
-            console.error("[3D_CITY] GLTF Load error:", err);
-            const errBox = document.getElementById('loading-error');
-            const errTxt = document.getElementById('loading-error-text');
-            const spinner = document.getElementById('loading-spinner');
-            if (errBox && errTxt) {
-                errTxt.innerText = `Failed to load 3D scene (${glbUrl}): ${err.message || 'Model file not found or corrupted.'}`;
-                errBox.classList.remove('hidden');
-                if (spinner) spinner.classList.add('hidden');
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            DOM.dropzoneArea.addEventListener(evt, (e) => {
+                e.preventDefault();
+                DOM.dropzoneArea.classList.remove('dragover');
+            });
+        });
+        DOM.dropzoneArea.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
             }
-        }
-    );
-}
-
-function handleBuildingClick(event) {
-    if (event.button !== 0 || buildingMeshObjects.length === 0) return;
-
-    const canvas = document.querySelector('#webgl-canvas');
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(buildingMeshObjects);
-
-    if (intersects.length > 0) {
-        const hitBuilding = intersects[0].object;
-        selectBuilding(hitBuilding);
-    }
-}
-
-function selectBuilding(buildingMesh) {
-    if (selectedBuildingMesh) {
-        if (selectedBuildingMesh.userData.originalMaterial) {
-            selectedBuildingMesh.material = selectedBuildingMesh.userData.originalMaterial;
-        } else if (selectedBuildingMesh.material && selectedBuildingMesh.material.color) {
-            selectedBuildingMesh.material.color.setHex(0x38bdf8);
-        }
-    }
-
-    selectedBuildingMesh = buildingMesh;
-    if (selectedBuildingMesh) {
-        selectedBuildingMesh.material = new THREE.MeshStandardMaterial({
-            color: 0xf59e0b,
-            roughness: 0.2,
-            metalness: 0.1,
-            emissive: 0x331a00,
-            side: THREE.DoubleSide
         });
     }
 
-    const bName = buildingMesh.name || "Building_001";
-    const meta = buildingsMetadataMap.get(bName) || buildingsMetadataMap.get(bName.toLowerCase());
-
-    const card = document.getElementById('building-info-card');
-    if (card) {
-        card.classList.remove('hidden');
-        document.getElementById('bldg-card-title').innerText = bName;
-        document.getElementById('bldg-val-id').innerText = bName;
-        
-        if (meta) {
-            document.getElementById('bldg-val-height').innerText = `${meta.height_m}m`;
-            document.getElementById('bldg-val-dims').innerText = `${meta.dimensions_3d[0]}m × ${meta.dimensions_3d[1]}m × ${meta.dimensions_3d[2]}m`;
-            document.getElementById('bldg-val-center').innerText = `${meta.center_3d[0]}, ${meta.center_3d[1]}, ${meta.center_3d[2]}`;
-            document.getElementById('bldg-val-area').innerText = `${meta.area_px} px`;
-            document.getElementById('bldg-val-conf').innerText = `${Math.round(meta.confidence * 100)}%`;
-        } else {
-            const box = new THREE.Box3().setFromObject(buildingMesh);
-            const sz = box.getSize(new THREE.Vector3());
-            const ctr = box.getCenter(new THREE.Vector3());
-            document.getElementById('bldg-val-height').innerText = `${sz.y.toFixed(2)}m`;
-            document.getElementById('bldg-val-dims').innerText = `${sz.x.toFixed(2)}m × ${sz.y.toFixed(2)}m × ${sz.z.toFixed(2)}m`;
-            document.getElementById('bldg-val-center').innerText = `${ctr.x.toFixed(2)}, ${ctr.y.toFixed(2)}, ${ctr.z.toFixed(2)}`;
-            document.getElementById('bldg-val-area').innerText = `Extruded Geometry`;
-            document.getElementById('bldg-val-conf').innerText = `100%`;
-        }
-    }
-}
-
-function onWindowResize() {
-    const canvas = document.querySelector('#webgl-canvas');
-    if (!canvas) return;
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-}
-
-function setupRightPanelUI() {
-    // Mode Pills
-    const modePills = document.querySelectorAll('.mode-pill');
-    modePills.forEach(pill => {
-        pill.addEventListener('click', () => {
-            const m = pill.getAttribute('data-mode');
-            config.mode = m;
-            syncModeUI(m);
-            updateVisualization();
-        });
-    });
-
-    // Extended Debug Selector
-    const debugSelect = document.getElementById('debug-mode-select');
-    if (debugSelect) {
-        debugSelect.addEventListener('change', (e) => {
-            config.mode = e.target.value;
-            syncModeUI(config.mode);
-            updateVisualization();
-        });
-    }
-
-    // Layer Toggles
-    const toggleGroundBtn = document.getElementById('btn-toggle-ground');
-    const toggleBldgsBtn = document.getElementById('btn-toggle-buildings');
-
-    if (toggleGroundBtn) {
-        toggleGroundBtn.addEventListener('click', () => {
-            config.showGround = !config.showGround;
-            if (groundMeshObject) groundMeshObject.visible = config.showGround;
-            toggleGroundBtn.classList.toggle('active', config.showGround);
-            toggleGroundBtn.style.background = config.showGround ? '#10b981' : '#4b5563';
-            toggleGroundBtn.innerText = `Ground: ${config.showGround ? 'ON' : 'OFF'}`;
-        });
-    }
-
-    if (toggleBldgsBtn) {
-        toggleBldgsBtn.addEventListener('click', () => {
-            config.showBuildings = !config.showBuildings;
-            buildingMeshObjects.forEach(b => b.visible = config.showBuildings);
-            toggleBldgsBtn.classList.toggle('active', config.showBuildings);
-            toggleBldgsBtn.style.background = config.showBuildings ? '#3b82f6' : '#4b5563';
-            toggleBldgsBtn.innerText = `Buildings: ${config.showBuildings ? 'ON' : 'OFF'}`;
-        });
-    }
-
-    // View Controls
-    document.getElementById('btn-reset')?.addEventListener('click', () => setCameraPreset('reset'));
-    document.getElementById('btn-fit')?.addEventListener('click', () => setCameraPreset('fit'));
-    document.getElementById('btn-top')?.addEventListener('click', () => setCameraPreset('top'));
-    document.getElementById('btn-iso')?.addEventListener('click', () => setCameraPreset('iso'));
-    document.getElementById('btn-persp')?.addEventListener('click', () => setCameraPreset('persp'));
-
-    // Building Card Close
-    document.getElementById('bldg-card-close')?.addEventListener('click', () => {
-        document.getElementById('building-info-card')?.classList.add('hidden');
-        if (selectedBuildingMesh) {
-            if (selectedBuildingMesh.userData.originalMaterial) {
-                selectedBuildingMesh.material = selectedBuildingMesh.userData.originalMaterial;
-            } else if (selectedBuildingMesh.material && selectedBuildingMesh.material.color) {
-                selectedBuildingMesh.material.color.setHex(0x38bdf8);
+    // Download Zip
+    if (DOM.btnDownloadZip) {
+        DOM.btnDownloadZip.addEventListener('click', () => {
+            if (activeSessionId) {
+                window.location.href = getApiUrl(`/api/download_all?session_id=${activeSessionId}`);
             }
-            selectedBuildingMesh = null;
+        });
+    }
+
+    // Gallery Actions (Expand, Compare, Download buttons inside cards)
+    document.addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('.view-btn');
+        if (viewBtn) {
+            const key = viewBtn.dataset.key;
+            openModal(key);
+            return;
+        }
+
+        const compareBtn = e.target.closest('.compare-btn');
+        if (compareBtn) {
+            const key = compareBtn.dataset.key;
+            activateCompareWith(key);
+            return;
+        }
+
+        const dlBtn = e.target.closest('.dl-btn');
+        if (dlBtn) {
+            const key = dlBtn.dataset.key;
+            if (currentMapUrls[key]) {
+                const a = document.createElement('a');
+                a.href = currentMapUrls[key];
+                a.download = `${key}.png`;
+                a.click();
+            }
+            return;
         }
     });
 
-    // Height Exaggeration Slider
-    const heightSlider = document.getElementById('height-slider');
-    if (heightSlider) {
-        heightSlider.addEventListener('input', (e) => {
-            updateHeightExaggeration(e.target.value);
+    // JSON Subtabs
+    DOM.jsonSubtabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            DOM.jsonSubtabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeJsonTab = btn.dataset.json;
+            updateJsonDisplay();
+        });
+    });
+
+    if (DOM.btnCopyJson) {
+        DOM.btnCopyJson.addEventListener('click', () => {
+            const code = DOM.jsonCodeDisplay.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const orig = DOM.btnCopyJson.textContent;
+                DOM.btnCopyJson.textContent = "✓ Copied!";
+                setTimeout(() => DOM.btnCopyJson.textContent = orig, 1800);
+            });
+        });
+    }
+
+    if (DOM.btnDownloadJson) {
+        DOM.btnDownloadJson.addEventListener('click', () => {
+            const code = DOM.jsonCodeDisplay.textContent;
+            const blob = new Blob([code], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${activeJsonTab}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         });
     }
 }
 
-function setCameraPreset(preset) {
-    if (!currentCitySceneGroup) return;
-    const box = new THREE.Box3().setFromObject(currentCitySceneGroup);
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.z, 2.0);
+function initTabs() {
+    DOM.dashTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            DOM.dashTabs.forEach(t => t.classList.remove('active'));
+            DOM.tabPanes.forEach(p => p.classList.add('hidden'));
 
-    if (preset === 'reset' || preset === 'persp') {
-        camera.position.set(maxDim * 0.9, maxDim * 0.9, maxDim * 0.9);
-    } else if (preset === 'top') {
-        camera.position.set(0, maxDim * 1.8, 0);
-    } else if (preset === 'iso') {
-        camera.position.set(maxDim * 1.2, maxDim * 1.2, maxDim * 1.2);
-    } else if (preset === 'fit') {
-        camera.position.set(0, maxDim * 0.8, maxDim * 1.2);
-    }
-    controls.target.set(0, 0, 0);
-    controls.update();
+            tab.classList.add('active');
+            const targetPane = document.getElementById(tab.dataset.tab);
+            if (targetPane) {
+                targetPane.classList.remove('hidden');
+            }
+        });
+    });
 }
 
-function syncModeUI(modeVal) {
-    const modePills = document.querySelectorAll('.mode-pill');
-    modePills.forEach(pill => {
-        const pm = pill.getAttribute('data-mode');
-        if (pm === modeVal) {
-            pill.classList.add('active');
-        } else {
-            pill.classList.remove('active');
+function initCompareControls() {
+    function updateCompareViews() {
+        const leftKey = DOM.compareSelectLeft.value;
+        const rightKey = DOM.compareSelectRight.value;
+
+        DOM.compareTitleLeft.textContent = MAP_TITLES[leftKey] || leftKey;
+        DOM.compareTitleRight.textContent = MAP_TITLES[rightKey] || rightKey;
+
+        if (currentMapUrls[leftKey]) {
+            DOM.compareImgLeft.src = currentMapUrls[leftKey];
         }
-    });
-
-    const debugSelect = document.getElementById('debug-mode-select');
-    if (debugSelect && debugSelect.value !== modeVal) {
-        debugSelect.value = modeVal;
-    }
-}
-
-function updateHeightExaggeration(newScale) {
-    config.zScale = parseFloat(newScale);
-    const heightDisplay = document.getElementById('height-val-display');
-    if (heightDisplay) heightDisplay.innerText = `${config.zScale.toFixed(1)}×`;
-
-    // Scale building extrusion height ONLY (ground plane remains flat at Y=0)
-    buildingMeshObjects.forEach(b => {
-        b.scale.y = config.zScale;
-    });
-}
-
-function updateVisualization() {
-    if (!currentCitySceneGroup) return;
-
-    const textureLoader = new THREE.TextureLoader();
-    const timestamp = new Date().getTime();
-
-    if (config.mode === 'Ground Only') {
-        if (groundMeshObject) groundMeshObject.visible = true;
-        buildingMeshObjects.forEach(b => b.visible = false);
-        return;
-    } else if (config.mode === 'Buildings Only') {
-        if (groundMeshObject) groundMeshObject.visible = false;
-        buildingMeshObjects.forEach(b => b.visible = true);
-        return;
+        if (currentMapUrls[rightKey]) {
+            DOM.compareImgRight.src = currentMapUrls[rightKey];
+        }
     }
 
-    if (groundMeshObject) groundMeshObject.visible = config.showGround;
-    buildingMeshObjects.forEach(b => b.visible = config.showBuildings);
+    DOM.compareSelectLeft.addEventListener('change', updateCompareViews);
+    DOM.compareSelectRight.addEventListener('change', updateCompareViews);
 
-    const texMap = {
-        'RGB Texture': 'texture_rgb.png',
-        'Building Footprints': 'texture_building_footprints.png',
-        'Building Height': 'building_height_map.png',
-        'Heatmap': 'heatmap.png',
-        'Cleaned Depth': 'depth_cleaned.png',
-        'Ground Surface': 'ground_surface.png',
-        'Boundary Map': 'boundary_combined.png',
-        'Segmentation': 'segmentation_mask.png',
-        'Confidence': 'building_confidence.png',
-        'Validity Mask': 'validity_mask.png'
-    };
-
-    if (texMap[config.mode] && groundMeshObject) {
-        const texUrl = getApiUrl(`/assets/${currentGenId}/${texMap[config.mode]}?t=${timestamp}`);
-        const tex = textureLoader.load(texUrl);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        groundMeshObject.material = new THREE.MeshStandardMaterial({
-            map: tex,
-            side: THREE.DoubleSide,
-            roughness: 0.6
+    if (DOM.btnSwapCompare) {
+        DOM.btnSwapCompare.addEventListener('click', () => {
+            const temp = DOM.compareSelectLeft.value;
+            DOM.compareSelectLeft.value = DOM.compareSelectRight.value;
+            DOM.compareSelectRight.value = temp;
+            updateCompareViews();
         });
     }
-
-    buildingMeshObjects.forEach(b => {
-        if (config.mode === 'Wireframe') {
-            b.material = new THREE.MeshBasicMaterial({
-                color: 0x00ffcc,
-                wireframe: true
-            });
-        } else if (config.mode === 'Normals') {
-            b.material = new THREE.MeshNormalMaterial();
-        } else if (config.mode === 'Building Height') {
-            b.material = new THREE.MeshStandardMaterial({
-                color: 0xf59e0b,
-                roughness: 0.3,
-                metalness: 0.1
-            });
-        } else {
-            b.material = b.userData.originalMaterial || new THREE.MeshStandardMaterial({
-                color: 0x38bdf8,
-                roughness: 0.35,
-                metalness: 0.1,
-                side: THREE.DoubleSide
-            });
-        }
-    });
 }
 
-function setupUpload() {
-    const uploadArea = document.getElementById('upload-area');
-    const fileInput = document.getElementById('file-input');
+function activateCompareWith(selectedKey) {
+    // Switch to compare tab
+    DOM.dashTabs.forEach(t => t.classList.remove('active'));
+    DOM.tabPanes.forEach(p => p.classList.add('hidden'));
 
-    uploadArea?.addEventListener('click', () => fileInput.click());
+    const compareTab = document.querySelector('[data-tab="tab-compare"]');
+    const comparePane = document.getElementById('tab-compare');
+    if (compareTab && comparePane) {
+        compareTab.classList.add('active');
+        comparePane.classList.remove('hidden');
+    }
 
-    uploadArea?.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = '#34d399';
-    });
-
-    uploadArea?.addEventListener('dragleave', () => {
-        uploadArea.style.borderColor = '#10b981';
-    });
-
-    uploadArea?.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.style.borderColor = '#10b981';
-        if (e.dataTransfer.files.length) {
-            handleUpload(e.dataTransfer.files[0]);
-        }
-    });
-
-    fileInput?.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleUpload(e.target.files[0]);
-        }
-    });
+    // Set right comparison layer
+    DOM.compareSelectRight.value = selectedKey;
+    DOM.compareSelectRight.dispatchEvent(new Event('change'));
+    comparePane.scrollIntoView({ behavior: 'smooth' });
 }
 
-async function handleUpload(file) {
+function handleFileUpload(file) {
     if (!file) return;
 
-    const loading = document.getElementById('loading');
-    const loadingText = document.getElementById('loading-text');
-    const loadingSubtext = document.getElementById('loading-subtext');
-    const stepBadge = document.getElementById('loading-step-badge');
-    const progressBar = document.getElementById('loading-progress-bar');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const loadingError = document.getElementById('loading-error');
-    const errorText = document.getElementById('loading-error-text');
-    const retryBtn = document.getElementById('loading-retry-btn');
-    
-    document.getElementById('upload-overlay').classList.add('hidden');
-    loading.classList.remove('hidden');
-    if (loadingSpinner) loadingSpinner.classList.remove('hidden');
-    if (loadingError) loadingError.classList.add('hidden');
+    // Client-side quick preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        DOM.inputPreviewImg.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 
-    function updateProgress(stepIdx, stepName, pct, subText) {
-        if (stepBadge) stepBadge.innerText = `STEP ${stepIdx}/8`;
-        if (loadingText) loadingText.innerText = stepName;
-        if (progressBar) progressBar.style.width = `${pct}%`;
-        if (loadingSubtext) loadingSubtext.innerText = `${pct}% ${subText || ''}`;
-        
-        if (document.getElementById('top-progress-status')) document.getElementById('top-progress-status').innerText = stepName;
-        if (document.getElementById('top-progress-pct')) document.getElementById('top-progress-pct').innerText = `${pct}%`;
-    }
-
-    if (retryBtn) {
-        retryBtn.onclick = () => {
-            loading.classList.add('hidden');
-            if (loadingError) loadingError.classList.add('hidden');
-            document.getElementById('upload-overlay').classList.remove('hidden');
-        };
-    }
-
-    updateProgress(1, "Loading image", 10, "Uploading payload...");
+    DOM.infoFilename.textContent = file.name;
+    DOM.infoSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+    DOM.infoFormat.textContent = file.name.split('.').pop().toUpperCase();
+    DOM.infoGeospatial.textContent = (file.name.endsWith('.tif') || file.name.endsWith('.tiff')) ? "Analyzing CRS..." : "Non-Georeferenced (Relative only)";
 
     const formData = new FormData();
     formData.append('image', file);
 
-    try {
-        const data = await safeFetchJson('/api/infer', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (data.error) throw new Error(data.error);
-
-        const genId = data.generation_id || data.session_id || data.job_id;
-        if (!genId) throw new Error("Backend response did not include a valid session / generation ID.");
-        
-        let done = false;
-        let pollFailures = 0;
-        while (!done) {
-            await new Promise(r => setTimeout(r, 800));
-            let progData;
-            try {
-                progData = await safeFetchJson(`/api/infer/progress?id=${encodeURIComponent(genId)}`);
-                pollFailures = 0;
-            } catch (pErr) {
-                pollFailures++;
-                if (pollFailures > 4) {
-                    throw new Error(`Connection lost while tracking reconstruction: ${pErr.message}`);
-                }
-                continue;
-            }
-            
-            if (progData.status === 'running') {
-                const sIdx = progData.step_index || 2;
-                const sName = progData.step_name || progData.stage || progData.message || "Processing...";
-                const pct = progData.progress || 20;
-                const detail = progData.message || "";
-                updateProgress(sIdx, sName, pct, detail);
-            } else if (progData.status === 'done' || progData.status === 'completed') {
-                done = true;
-            } else if (progData.status === 'error') {
-                const stageStr = progData.step_name || progData.stage ? `[${progData.step_name || progData.stage}] ` : "";
-                const errStr = progData.error || progData.message || "Reconstruction pipeline failure occurred.";
-                const causeStr = progData.cause ? ` — ${progData.cause}` : "";
-                throw new Error(`${stageStr}${errStr}${causeStr}`);
-            }
-        }
-
-        updateProgress(8, "Loading 3D City Model", 95, "Rendering GLTF buildings...");
-        
-        // Load the new 3D City Model
-        await loadStructuredCityModel(genId);
-
-        // Top bar updates
-        if (document.getElementById('top-img-name')) document.getElementById('top-img-name').innerText = file.name || "image.jpg";
-        if (document.getElementById('info-src-img')) document.getElementById('info-src-img').innerText = file.name || "image.jpg";
-
-        // Update Thumbnails
-        const heatmapUrl = getApiUrl(`/assets/${genId}/depth.png`);
-        const rgbUrl = getApiUrl(`/assets/${genId}/image.jpg`);
-        const thumbHeatmapImg = document.getElementById('thumb-img-heatmap');
-        const thumbDepthImg = document.getElementById('thumb-img-depth');
-        const thumbRgbImg = document.getElementById('thumb-img-rgb');
-        if (thumbHeatmapImg) thumbHeatmapImg.src = heatmapUrl;
-        if (thumbDepthImg) thumbDepthImg.src = getApiUrl(`/assets/${genId}/depth_cleaned.png`) || heatmapUrl;
-        if (thumbRgbImg) thumbRgbImg.src = rgbUrl;
-
-        updateProgress(8, "Ready", 100, "Complete");
-        await new Promise(r => setTimeout(r, 400));
-        loading.classList.add('hidden');
-
-    } catch (err) {
-        console.error("Reconstruction error:", err);
-        if (loadingSpinner) loadingSpinner.classList.add('hidden');
-        if (loadingError) {
-            loadingError.classList.remove('hidden');
-            if (errorText) errorText.innerText = err.message || "An unexpected error occurred.";
-        } else {
-            alert(`Error: ${err.message}`);
-            loading.classList.add('hidden');
-            document.getElementById('upload-overlay').classList.remove('hidden');
-        }
-    }
+    startPipeline(formData);
 }
 
-init();
+function handleSampleSelect(sampleName) {
+    DOM.infoFilename.textContent = sampleName;
+    DOM.infoFormat.textContent = sampleName.split('.').pop().toUpperCase();
+    DOM.infoGeospatial.textContent = "Sample Dataset (Relative Elevation)";
+    DOM.inputPreviewImg.src = getApiUrl(`/${sampleName}`);
 
+    const formData = new FormData();
+    formData.append('preset', sampleName);
+
+    startPipeline(formData);
+}
+
+function startPipeline(formData) {
+    // Show processing section
+    DOM.sectionProcessing.classList.remove('hidden');
+    DOM.sectionDashboard.classList.add('hidden');
+    DOM.sectionProcessing.scrollIntoView({ behavior: 'smooth' });
+
+    updateProgressBar(5, "Submitting payload...");
+
+    fetch(getApiUrl('/api/analyze'), {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.error || "Failed to start remote-sensing pipeline.");
+        }
+        activeSessionId = data.session_id || data.generation_id;
+        startPolling(activeSessionId);
+    })
+    .catch(err => {
+        alert(`Error starting analysis: ${err.message}`);
+        DOM.sectionProcessing.classList.add('hidden');
+    });
+}
+
+function startPolling(sessionId) {
+    if (pollInterval) clearInterval(pollInterval);
+
+    pollInterval = setInterval(() => {
+        fetch(getApiUrl(`/api/progress?session_id=${sessionId}&t=${Date.now()}`))
+            .then(res => res.json())
+            .then(progress => {
+                if (!progress.success && progress.status === 'error') {
+                    clearInterval(pollInterval);
+                    alert(`Pipeline error: ${progress.error || 'Unknown error'}`);
+                    return;
+                }
+
+                const pct = progress.progress || 10;
+                updateProgressBar(pct, progress.message || progress.step_name);
+                highlightStageStep(progress.step_index || 1);
+
+                if (progress.status === 'completed' || pct >= 100) {
+                    clearInterval(pollInterval);
+                    setTimeout(() => fetchResults(sessionId), 700);
+                }
+            })
+            .catch(() => {});
+    }, 600);
+}
+
+function updateProgressBar(percent, msg) {
+    DOM.progressBarFill.style.width = `${percent}%`;
+    DOM.progressPercentText.textContent = `${percent}%`;
+    DOM.stageMessage.textContent = msg;
+}
+
+function highlightStageStep(stepIdx) {
+    DOM.stageSteps.forEach((st) => {
+        const stepNum = parseInt(st.dataset.step, 10);
+        if (stepNum < stepIdx) {
+            st.className = 'stage-step completed';
+        } else if (stepNum === stepIdx) {
+            st.className = 'stage-step active';
+        } else {
+            st.className = 'stage-step';
+        }
+    });
+}
+
+function fetchResults(sessionId) {
+    fetch(getApiUrl(`/api/results?session_id=${sessionId}&t=${Date.now()}`))
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.error || "Failed loading analysis results.");
+            }
+            DOM.sectionProcessing.classList.add('hidden');
+            DOM.sectionDashboard.classList.remove('hidden');
+            renderResults(data);
+            DOM.sectionDashboard.scrollIntoView({ behavior: 'smooth' });
+        })
+        .catch(err => {
+            alert(`Error retrieving results: ${err.message}`);
+        });
+}
+
+function renderResults(data) {
+    activeSessionId = data.session_id || data.generation_id;
+    currentMetadata = data.metadata || data.report || {};
+    currentBuildings = data.buildings || {};
+    currentStatistics = data.statistics || {};
+    currentMapUrls = data.map_urls || {};
+
+    // Transform relative URLs using getApiUrl
+    Object.keys(currentMapUrls).forEach(k => {
+        if (currentMapUrls[k]) {
+            currentMapUrls[k] = getApiUrl(currentMapUrls[k]);
+        }
+    });
+
+    const meta = currentMetadata;
+    const imgInfo = meta.image || {};
+    const depthInfo = meta.depth || {};
+    const elevInfo = meta.elevation || {};
+    const bldgSummary = (currentBuildings.summary) || meta.buildings || {};
+    const geoInfo = meta.geospatial || {};
+    const qualityInfo = meta.quality || {};
+
+    // Header Pills
+    DOM.sessionIdDisplay.textContent = `Session: ${activeSessionId}`;
+    DOM.sessionTimeDisplay.textContent = new Date().toLocaleTimeString();
+
+    // 6 Key Stat Cards
+    DOM.statBuildingCount.textContent = bldgSummary.count || 0;
+    DOM.statImageSize.textContent = `${imgInfo.width || '--'} × ${imgInfo.height || '--'}`;
+    DOM.statImageFormat.textContent = `${imgInfo.format || 'RGB'} (${imgInfo.channels || 3} Ch)`;
+    DOM.statDepthRange.textContent = `${depthInfo.min !== undefined ? depthInfo.min : '--'} - ${depthInfo.max !== undefined ? depthInfo.max : '--'}`;
+    DOM.statElevationMax.textContent = elevInfo.max !== undefined ? elevInfo.max : '--';
+    
+    // Geospatial Status
+    if (geoInfo.georeferenced) {
+        DOM.statGeospatialStatus.textContent = geoInfo.epsg ? `EPSG:${geoInfo.epsg}` : "GeoTIFF";
+        DOM.statGeospatialSub.textContent = "Georeferenced bounds";
+    } else {
+        DOM.statGeospatialStatus.textContent = "Non-Geo";
+        DOM.statGeospatialSub.textContent = "Relative scale only";
+    }
+
+    DOM.statConfidence.textContent = qualityInfo.confidence ? `${Math.round(qualityInfo.confidence * 100)}%` : "--%";
+
+    // Render 12 Maps Gallery
+    Object.keys(MAP_TITLES).forEach(key => {
+        const imgElem = document.getElementById(`map-img-${key}`);
+        if (imgElem && currentMapUrls[key]) {
+            imgElem.src = currentMapUrls[key];
+        }
+    });
+
+    // Sub-pills under maps
+    const pillDepth = document.getElementById('pill-depth');
+    if (pillDepth && depthInfo.min !== undefined) {
+        pillDepth.innerHTML = `<span>Min: ${depthInfo.min}</span> | <span>Max: ${depthInfo.max}</span> | <span>unit: relative</span>`;
+    }
+    const pillRdsm = document.getElementById('pill-rdsm');
+    if (pillRdsm && elevInfo.max !== undefined) {
+        pillRdsm.innerHTML = `<span>Surface Model</span> | <span>Max Elev: ${elevInfo.max} (relative)</span>`;
+    }
+    const pillElev = document.getElementById('pill-elev');
+    if (pillElev && elevInfo.mean !== undefined) {
+        pillElev.innerHTML = `<span>Mean: ${elevInfo.mean}</span> | <span>Unit: Relative Elevation</span>`;
+    }
+    const pillBldgDet = document.getElementById('pill-bldg-det');
+    if (pillBldgDet && bldgSummary.count !== undefined) {
+        pillBldgDet.innerHTML = `<span>${bldgSummary.count} Buildings</span> | <span>Avg Conf: ${Math.round((bldgSummary.average_confidence || 0) * 100)}%</span>`;
+    }
+    const pillBldgH = document.getElementById('pill-bldg-h');
+    if (pillBldgH && bldgSummary.maximum_height !== undefined) {
+        pillBldgH.innerHTML = `<span>Max H: ${bldgSummary.maximum_height}</span> | <span>Avg H: ${bldgSummary.average_height} (relative)</span>`;
+    }
+
+    // Populate Analysis Data Section
+    DOM.adFilename.textContent = imgInfo.filename || '--';
+    DOM.adFormat.textContent = imgInfo.format || '--';
+    DOM.adDims.textContent = `${imgInfo.width || '--'} × ${imgInfo.height || '--'} px`;
+    DOM.adChannels.textContent = `${imgInfo.channels || 3} (RGB)`;
+    DOM.adSize.textContent = imgInfo.file_size_bytes ? `${(imgInfo.file_size_bytes / 1024).toFixed(1)} KB` : '-- KB';
+    DOM.adTime.textContent = imgInfo.processing_time_seconds ? `${imgInfo.processing_time_seconds}s` : '--';
+
+    // Geospatial Info
+    DOM.geoStatus.textContent = geoInfo.georeferenced ? "✓ Georeferenced (True)" : "✗ Non-Georeferenced";
+    DOM.geoCrs.textContent = geoInfo.crs || "Georeferencing: Not Available";
+    DOM.geoEpsg.textContent = geoInfo.epsg ? `EPSG:${geoInfo.epsg}` : "None";
+    DOM.geoPixelSize.textContent = geoInfo.pixel_size ? `${geoInfo.pixel_size[0].toFixed(4)} × ${geoInfo.pixel_size[1].toFixed(4)}` : "Relative pixel grid";
+    DOM.geoBounds.textContent = geoInfo.bounds ? `[${geoInfo.bounds.map(b => b.toFixed(2)).join(', ')}]` : "None";
+    DOM.geoCoverage.textContent = geoInfo.coordinates && geoInfo.coordinates.center ? `Center: ${geoInfo.coordinates.center.map(c => c.toFixed(4)).join(', ')}` : "Local image space";
+
+    // Elevation Stats
+    DOM.adElevType.textContent = elevInfo.type || "relative";
+    DOM.adElevMin.textContent = elevInfo.min !== undefined ? elevInfo.min : "0.00";
+    DOM.adElevMax.textContent = elevInfo.max !== undefined ? elevInfo.max : "0.00";
+    DOM.adElevMean.textContent = elevInfo.mean !== undefined ? elevInfo.mean : "0.00";
+    DOM.adElevMedian.textContent = elevInfo.median !== undefined ? elevInfo.median : "0.00";
+
+    // Quality Stats
+    DOM.adQConf.textContent = qualityInfo.confidence ? `${(qualityInfo.confidence * 100).toFixed(1)}%` : "--";
+    DOM.adQMae.textContent = qualityInfo.mae !== null ? qualityInfo.mae : "null (No Ground Truth DEM)";
+    DOM.adQRmse.textContent = qualityInfo.rmse !== null ? qualityInfo.rmse : "null (No Ground Truth DEM)";
+    DOM.adQCorr.textContent = qualityInfo.correlation !== null ? qualityInfo.correlation : "null";
+    DOM.adQValid.textContent = "100% (No invalid pixels)";
+    DOM.adQStatus.textContent = qualityInfo.quality_status || "PASS";
+
+    // Building Summary & Table
+    DOM.bsumCount.textContent = bldgSummary.count || 0;
+    DOM.bsumAvgH.textContent = bldgSummary.average_height !== undefined ? bldgSummary.average_height : "0.00";
+    DOM.bsumMaxH.textContent = bldgSummary.maximum_height !== undefined ? bldgSummary.maximum_height : "0.00";
+    DOM.bsumMinH.textContent = bldgSummary.minimum_height !== undefined ? bldgSummary.minimum_height : "0.00";
+    DOM.bsumArea.textContent = bldgSummary.total_area ? `${bldgSummary.total_area.toLocaleString()} px²` : "0 px²";
+    DOM.bsumConf.textContent = bldgSummary.average_confidence ? `${Math.round(bldgSummary.average_confidence * 100)}%` : "0%";
+
+    renderBuildingTable(currentBuildings.buildings || []);
+
+    // Update Compare Views & JSON Viewer
+    DOM.compareSelectLeft.dispatchEvent(new Event('change'));
+    updateJsonDisplay();
+}
+
+function renderBuildingTable(buildings) {
+    DOM.buildingsTableBody.innerHTML = '';
+
+    if (!buildings || buildings.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">No building structures detected for this image threshold.</td>`;
+        DOM.buildingsTableBody.appendChild(tr);
+        return;
+    }
+
+    buildings.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.className = "clickable-bldg-row";
+        tr.dataset.id = b.id;
+
+        const bboxStr = b.bounding_box ? `[${b.bounding_box.join(', ')}]` : '--';
+        const centerStr = b.center ? `(${b.center[0]}, ${b.center[1]})` : '--';
+
+        tr.innerHTML = `
+            <td><strong class="bldg-id-tag">${b.id}</strong></td>
+            <td><code>${bboxStr}</code></td>
+            <td>${b.area_pixels ? b.area_pixels.toLocaleString() : '--'}</td>
+            <td><span class="height-tag">${b.estimated_height !== undefined ? b.estimated_height : '--'}</span></td>
+            <td><code>${b.height_unit || 'relative'}</code></td>
+            <td><span class="conf-badge">${Math.round((b.confidence || 0) * 100)}%</span></td>
+            <td><code>${centerStr}</code></td>
+        `;
+
+        tr.addEventListener('click', () => {
+            document.querySelectorAll('.clickable-bldg-row').forEach(r => r.classList.remove('selected-bldg'));
+            tr.classList.add('selected-bldg');
+            highlightBuildingPreview(b);
+        });
+
+        DOM.buildingsTableBody.appendChild(tr);
+    });
+}
+
+function highlightBuildingPreview(building) {
+    // Open Building Footprint map with alert toast identifying the selected structure
+    openModal('building_boundaries', `Focused Building: ${building.id} | Relative Height: ${building.estimated_height} | Area: ${building.area_pixels} px² | Center: (${building.center.join(', ')})`);
+}
+
+function updateJsonDisplay() {
+    let targetData = currentMetadata;
+    if (activeJsonTab === "buildings") {
+        targetData = currentBuildings;
+    } else if (activeJsonTab === "statistics") {
+        targetData = currentStatistics;
+    }
+
+    DOM.jsonCodeDisplay.textContent = JSON.stringify(targetData, null, 2);
+}
+
+// MODAL ZOOM & PAN CONTROLLER
+function initModalPanZoom() {
+    if (DOM.modalCloseBtn) {
+        DOM.modalCloseBtn.addEventListener('click', closeModal);
+    }
+    if (DOM.imageModal) {
+        DOM.imageModal.addEventListener('click', (e) => {
+            if (e.target === DOM.imageModal) closeModal();
+        });
+    }
+
+    if (DOM.btnModalZoomIn) {
+        DOM.btnModalZoomIn.addEventListener('click', () => adjustZoom(0.25));
+    }
+    if (DOM.btnModalZoomOut) {
+        DOM.btnModalZoomOut.addEventListener('click', () => adjustZoom(-0.25));
+    }
+    if (DOM.btnModalZoomReset) {
+        DOM.btnModalZoomReset.addEventListener('click', resetZoom);
+    }
+
+    // Drag to pan
+    DOM.modalPanContainer.addEventListener('mousedown', (e) => {
+        isPanning = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+        DOM.modalPanContainer.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isPanning = false;
+        DOM.modalPanContainer.style.cursor = 'grab';
+    });
+
+    // Mouse wheel zoom
+    DOM.modalPanContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        adjustZoom(delta);
+    });
+}
+
+function adjustZoom(amount) {
+    modalZoom = Math.max(0.5, Math.min(modalZoom + amount, 5.0));
+    applyTransform();
+}
+
+function resetZoom() {
+    modalZoom = 1.0;
+    panX = 0;
+    panY = 0;
+    applyTransform();
+}
+
+function applyTransform() {
+    DOM.modalImageDisplay.style.transform = `translate(${panX}px, ${panY}px) scale(${modalZoom})`;
+}
+
+function openModal(key, customSubText = null) {
+    if (!currentMapUrls[key]) return;
+
+    DOM.modalTitle.textContent = MAP_TITLES[key] || key;
+    DOM.modalSubInfo.textContent = customSubText || "High-Resolution 2D Inspection View • Use wheel to zoom, drag to pan";
+    DOM.modalImageDisplay.src = currentMapUrls[key];
+    DOM.modalDownloadLink.href = currentMapUrls[key];
+    DOM.modalDownloadLink.download = `${key}.png`;
+
+    resetZoom();
+    DOM.imageModal.classList.remove('hidden');
+}
+
+function closeModal() {
+    DOM.imageModal.classList.add('hidden');
+    resetZoom();
+}
