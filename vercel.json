@@ -1,0 +1,48 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "ml-depth-pro": {
+      "root": "ml-depth-pro",
+      "runtime": "python",
+      "entrypoint": "app.py"
+    },
+    "point-cloud-viewer": {
+      "root": "ml-depth-pro/point-cloud-viewer",
+      "framework": "vite",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "ml-depth-pro",
+          "format": "url",
+          "env": "BACKEND_URL"
+        }
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "ml-depth-pro"
+      }
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": {
+        "service": "ml-depth-pro"
+      }
+    },
+    {
+      "source": "/output/(.*)",
+      "destination": {
+        "service": "ml-depth-pro"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "point-cloud-viewer"
+      }
+    }
+  ]
+}
